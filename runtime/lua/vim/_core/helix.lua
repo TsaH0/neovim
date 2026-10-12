@@ -3406,7 +3406,11 @@ cmd('command_palette', 'Open command palette', function()
   table.sort(items, function(a, b)
     return a.text < b.text
   end)
-  require('vim._core.helix_picker').open({ title = 'Command palette', items = items, preview = false })
+  require('vim._core.helix_picker').open({
+    title = 'Command palette',
+    items = items,
+    preview = false,
+  })
 end)
 
 cmd('dap', 'Debug (experimental)', function()
