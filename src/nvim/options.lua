@@ -4459,6 +4459,26 @@ local options = {
       immutable = true,
     },
     {
+      abbreviation = 'hx',
+      cb = 'did_set_helix',
+      defaults = true,
+      desc = [=[
+        Use the Helix editor's keymap and selection model in Normal mode:
+        select text first, then act on it ("wd" deletes a word), with
+        multiple selections, minor modes (|helix-goto|, |helix-space|, …)
+        and pickers.  See |helix-mode|.
+        When off, the Vim keys are used.  Can be toggled at any time.
+        Mappings you define take precedence, like other |default-mappings|.
+        The environment variable $NVIM_HELIX_MODE set to "0" resets this
+        option at startup.
+      ]=],
+      full_name = 'helix',
+      scope = { 'global' },
+      short_desc = N_('use the Helix keymap and selection model'),
+      type = 'boolean',
+      varname = 'p_helix',
+    },
+    {
       abbreviation = 'hf',
       cb = 'did_set_helpfile',
       defaults = {

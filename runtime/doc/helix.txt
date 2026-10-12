@@ -17,32 +17,34 @@ Reference: https://docs.helix-editor.com/keymap.html
 ==============================================================================
 Enabling and disabling					*helix-mode-enable*
 
-Helix mode is enabled by the builtin "helix" plugin (runtime/plugin/helix.lua).
-To use the traditional Vim keys instead, put this in your |init.lua|: >lua
-    vim.g.helix_mode = false
+Helix mode is part of Nvim's defaults (like |default-mappings|), controlled
+by the 'helix' option, which is on by default. To use the Vim keys, put this
+in your config: >vim
+    set nohelix
 <
-or set the environment variable `$NVIM_HELIX_MODE` to "0".
+'helix' can be toggled at any time; ":set nohelix" restores the Vim keys and
+the |default-mappings| that Helix mode replaced. Setting the environment
+variable `$NVIM_HELIX_MODE` to "0" resets 'helix' at startup.
 
-To enable it explicitly (e.g. when plugins are disabled): >lua
-    require('nvim.helix').setup()
+Like other default mappings, mappings in your config take precedence: >lua
+    vim.keymap.set('n', 'Q', 'gq')
 <
-Options:
-- `vim.g.helix_mode = { statusline = false }`: don't prefix the default
-  'statusline' with the mode (NOR, SEL, INS).
-- `vim.g.helix_infobox = false`: don't show the key hints popup for minor
+Every Helix command is available as a Lua function, named like in Helix, to
+rebind keys: >lua
+    local cmds = require('vim._core.helix').commands
+    vim.keymap.set('n', '<C-p>', cmds.file_picker.fn)
+<
+Variables:
+- `g:helix_infobox` = |v:false|: don't show the key hints popup for minor
   modes (g, m, z, Space, …).
-- `vim.g.helix_jump_label_alphabet`: labels for |helix-gw| (default
+- `g:helix_jump_label_alphabet`: labels for |helix-gw| (default
   "abcdefghijklmnopqrstuvwxyz").
 
-Setup adds "onemore" to 'virtualedit' (selections can include line endings)
-and removes the Nvim default mappings that would shadow Helix keys (|]d|,
-|[<Space>|, |gc|, |grn|, …).
+When enabled, Helix mode adds "onemore" to 'virtualedit' (selections can
+include line endings), shows the mode (NOR, SEL, INS) in the default
+'statusline', and replaces the |default-mappings| that would shadow Helix
+keys (|]d|, |[<Space>|, |gc|, |grn|, …).
 
-To change a key, map it after setup (e.g. in `after/plugin/`). Every Helix
-command is available as a Lua function, named like in Helix: >lua
-    local hx = require('nvim.helix')
-    vim.keymap.set('n', '<C-p>', hx.commands.file_picker.fn)
-<
 ==============================================================================
 Selections						*helix-selections*
 
@@ -54,7 +56,7 @@ There can be many selections (e.g. "%" then "s" with a regex). Edits, yanks
 and pastes apply to every selection; Insert mode types at every selection
 (using |multicursor|). Undo is atomic.
 
-Moving the cursor by other means (mouse, LSP jumps, |:{range}|) collapses the
+Moving the cursor by other means (mouse, LSP jumps, Ex commands) collapses the
 selections to the cursor. A Visual-mode selection (mouse drag) becomes a Helix
 selection.
 

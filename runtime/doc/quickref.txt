@@ -743,6 +743,7 @@ Short explanation of each option:		*option-list*
 'guioptions'	  'go'	    GUI: Which components and options are used
 'guitablabel'	  'gtl'     GUI: custom label for a tabpage
 'guitabtooltip'   'gtt'     GUI: custom tooltip for a tabpage
+'helix'		  'hx'	    use the Helix keymap and selection model
 'helpfile'	  'hf'	    full path name of the main help file
 'helpheight'	  'hh'	    minimum height of a new help window
 'helplang'	  'hlg'     preferred help languages

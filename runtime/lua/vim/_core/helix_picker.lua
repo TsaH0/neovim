@@ -28,7 +28,7 @@ local M = {}
 ---@field on_select? fun(item: nvim.helix.PickerItem, how: 'edit'|'split'|'vsplit'|'bg')
 ---@field preview? boolean
 
-local ns = api.nvim_create_namespace('nvim.helix.picker')
+local ns = api.nvim_create_namespace('vim._core.helix_picker')
 
 ---@type nvim.helix.PickerOpts?
 M.last = nil
@@ -65,9 +65,9 @@ function M.jump(item, how)
     pcall(api.nvim_win_set_cursor, 0, { math.min(item.lnum, lc), math.max(0, (item.col or 1) - 1) })
     vim.cmd('normal! zz')
   end
-  local ok, helix = pcall(require, 'nvim.helix')
+  local ok, helix = pcall(require, 'vim._core.helix')
   if ok and helix.enabled then
-    local sel = require('nvim.helix.sel')
+    local sel = require('vim._core.helix_sel')
     if item.end_lnum and item.end_col and item.lnum then
       local a = { item.lnum - 1, (item.col or 1) - 1 }
       local h = sel.prev({ item.end_lnum - 1, item.end_col - 1 }) or a

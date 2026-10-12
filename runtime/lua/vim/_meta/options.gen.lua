@@ -3279,6 +3279,21 @@ vim.o.gfw = vim.o.guifontwide
 vim.go.guifontwide = vim.o.guifontwide
 vim.go.gfw = vim.go.guifontwide
 
+--- Use the Helix editor's keymap and selection model in Normal mode:
+--- select text first, then act on it ("wd" deletes a word), with
+--- multiple selections, minor modes (`helix-goto`, `helix-space`, …)
+--- and pickers.  See `helix-mode`.
+--- When off, the Vim keys are used.  Can be toggled at any time.
+--- Mappings you define take precedence, like other `default-mappings`.
+--- The environment variable $NVIM_HELIX_MODE set to "0" resets this
+--- option at startup.
+---
+--- @type boolean
+vim.o.helix = true
+vim.o.hx = vim.o.helix
+vim.go.helix = vim.o.helix
+vim.go.hx = vim.go.helix
+
 --- Name of the main help file.  All distributed help files should be
 --- placed together in one directory.  Additionally, all "doc" directories
 --- in 'runtimepath' will be used.

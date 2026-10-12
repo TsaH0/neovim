@@ -319,6 +319,7 @@ local options_list = {
   },
   {
     header = N_ 'mapping',
+    { 'helix', N_ 'use the Helix keymap and selection model' },
     { 'maxmapdepth', N_ 'maximum depth of mapping' },
     { 'timeout', N_ 'allow timing out halfway into a mapping' },
     { 'ttimeout', N_ 'allow timing out halfway into a key code' },

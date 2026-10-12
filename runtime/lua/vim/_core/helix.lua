@@ -3,10 +3,10 @@
 ---
 --- Every Helix command is implemented as a function in `M.commands`, named
 --- like the Helix command (`move_next_word_start`, `select_regex`, …), and
---- bound to the Helix default keys in |M.setup()|.
+--- bound to the Helix default keys by |M.enable()| (see 'helix').
 
 local api, fn = vim.api, vim.fn
-local sel = require('nvim.helix.sel')
+local sel = require('vim._core.helix_sel')
 
 local M = {}
 
@@ -1929,7 +1929,7 @@ cmd('toggle_line_comments', 'Line comment/uncomment selections', comment_lines)
 -- Tree-sitter.
 
 local function ts_each(f, name)
-  local ts = require('nvim.helix.ts')
+  local ts = require('vim._core.helix_ts')
   if not ts.available() then
     notify(name .. ': no tree-sitter parser for this buffer', vim.log.levels.WARN)
     return
@@ -2003,7 +2003,7 @@ cmd('select_all_children', 'Select all children of the current node', function()
 end)
 
 local function parent_edge(to_end)
-  local ts = require('nvim.helix.ts')
+  local ts = require('vim._core.helix_ts')
   if not ts.available() then
     notify('no tree-sitter parser for this buffer', vim.log.levels.WARN)
     return
@@ -2323,12 +2323,15 @@ local function lsp_supports(method)
 end
 
 local function items_picker(title, items)
-  require('nvim.helix.picker').open({ title = title, items = items })
+  require('vim._core.helix_picker').open({ title = title, items = items })
 end
 
 --- LSP location request; jumps directly when there's a single result.
 local function lsp_goto(method, f, title)
   return function()
+    if type(f) == 'string' then
+      f = vim.lsp.buf[f]
+    end
     if not lsp_supports(method) then
       notify('No configured language server supports ' .. method, vim.log.levels.WARN)
       return
@@ -2340,7 +2343,7 @@ local function lsp_goto(method, f, title)
         if #items == 0 then
           notify('No ' .. title .. ' found', vim.log.levels.WARN)
         elseif #items == 1 then
-          require('nvim.helix.picker').jump({
+          require('vim._core.helix_picker').jump({
             text = items[1].text or '',
             file = items[1].filename,
             buf = items[1].bufnr,
@@ -2372,22 +2375,22 @@ end
 cmd(
   'goto_definition',
   'Goto definition',
-  lsp_goto('textDocument/definition', vim.lsp.buf.definition, 'definition')
+  lsp_goto('textDocument/definition', 'definition', 'definition')
 )
 cmd(
   'goto_declaration',
   'Goto declaration',
-  lsp_goto('textDocument/declaration', vim.lsp.buf.declaration, 'declaration')
+  lsp_goto('textDocument/declaration', 'declaration', 'declaration')
 )
 cmd(
   'goto_type_definition',
   'Goto type definition',
-  lsp_goto('textDocument/typeDefinition', vim.lsp.buf.type_definition, 'type definition')
+  lsp_goto('textDocument/typeDefinition', 'type_definition', 'type definition')
 )
 cmd(
   'goto_implementation',
   'Goto implementation',
-  lsp_goto('textDocument/implementation', vim.lsp.buf.implementation, 'implementation')
+  lsp_goto('textDocument/implementation', 'implementation', 'implementation')
 )
 cmd(
   'goto_reference',
@@ -2585,7 +2588,7 @@ local function pair_of(ch)
 end
 
 cmd('match_brackets', 'Goto matching bracket', function()
-  local ts = require('nvim.helix.ts')
+  local ts = require('vim._core.helix_ts')
   motion(function(s)
     local p = ts.available() and ts.match_bracket(s.h)
     if p then
@@ -2847,7 +2850,7 @@ local function select_textobject(around)
     if not k then
       return
     end
-    local ts = require('nvim.helix.ts')
+    local ts = require('vim._core.helix_ts')
     sel.transform(function(s)
       local r
       if ts_objects[k] then
@@ -3176,7 +3179,7 @@ end
 
 --- Document symbols via tree-sitter (when no LSP).
 local function ts_symbols()
-  local ts = require('nvim.helix.ts')
+  local ts = require('vim._core.helix_ts')
   if not ts.available() then
     notify('No language server or tree-sitter parser for this buffer', vim.log.levels.WARN)
     return
@@ -3235,7 +3238,7 @@ cmd('workspace_symbol_picker', 'Open workspace symbol picker', function()
     return
   end
   local buf = api.nvim_get_current_buf()
-  require('nvim.helix.picker').open({
+  require('vim._core.helix_picker').open({
     title = 'Workspace symbols',
     items = {},
     dynamic = function(q)
@@ -3349,7 +3352,7 @@ end)
 cmd('global_search', 'Global search in workspace folder', function()
   local root = root_dir()
   local rg = fn.executable('rg') == 1
-  require('nvim.helix.picker').open({
+  require('vim._core.helix_picker').open({
     title = 'Global search: ' .. fn.fnamemodify(root, ':~'),
     items = {},
     dynamic = function(q)
@@ -3387,7 +3390,7 @@ cmd('global_search', 'Global search in workspace folder', function()
 end)
 
 cmd('last_picker', 'Open last picker', function()
-  require('nvim.helix.picker').resume()
+  require('vim._core.helix_picker').resume()
 end)
 
 cmd('command_palette', 'Open command palette', function()
@@ -3403,7 +3406,7 @@ cmd('command_palette', 'Open command palette', function()
   table.sort(items, function(a, b)
     return a.text < b.text
   end)
-  require('nvim.helix.picker').open({ title = 'Command palette', items = items, preview = false })
+  require('vim._core.helix_picker').open({ title = 'Command palette', items = items, preview = false })
 end)
 
 cmd('dap', 'Debug (experimental)', function()
@@ -3489,7 +3492,7 @@ end)
 
 local function ts_goto(kind, forward)
   return function()
-    local ts = require('nvim.helix.ts')
+    local ts = require('vim._core.helix_ts')
     if not ts.available() then
       notify('no tree-sitter parser for this buffer', vim.log.levels.WARN)
       return
@@ -4063,20 +4066,35 @@ local default_maps = {
   ']]',
 }
 
+--- Mappings set by Helix mode, as {mode, lhs}, removed by |M.disable()|.
+local installed = {} ---@type {[1]: string, [2]: string}[]
+--- Default mappings removed by Helix mode, restored by |M.disable()|.
+local removed = {} ---@type table[]
+
+---@param modes string|string[]
+---@param lhss string|string[]
+local function kset(modes, lhss, rhs, o)
+  vim.keymap.set(modes, lhss, rhs, o)
+  for _, m in ipairs(type(modes) == 'table' and modes or { modes }) do
+    for _, l in ipairs(type(lhss) == 'table' and lhss or { lhss }) do
+      installed[#installed + 1] = { m, l }
+    end
+  end
+end
+
 local function set_keymaps()
   local opts = { nowait = true }
   for _, lhs in ipairs(default_maps) do
-    local m = fn.maparg(lhs, 'n', false, true)
-    if not vim.tbl_isempty(m) and not (m.desc or ''):match('^helix') then
-      pcall(vim.keymap.del, 'n', lhs)
-    end
-    m = fn.maparg(lhs, 'x', false, true)
-    if not vim.tbl_isempty(m) then
-      pcall(vim.keymap.del, 'x', lhs)
+    for _, mode in ipairs({ 'n', 'x' }) do
+      local m = fn.maparg(lhs, mode, false, true)
+      if not vim.tbl_isempty(m) and not (m.desc or ''):match('^helix') then
+        removed[#removed + 1] = m
+        pcall(vim.keymap.del, mode, lhs)
+      end
     end
   end
   for _, lhs in ipairs(unbound) do
-    vim.keymap.set('n', lhs, '<Nop>', { desc = 'helix: unbound' })
+    kset('n', lhs, '<Nop>', { desc = 'helix: unbound' })
   end
   for _, m in ipairs(normal_keys) do
     local keys = type(m[1]) == 'table' and m[1] or { m[1] }
@@ -4092,42 +4110,42 @@ local function set_keymaps()
       desc = 'helix: ' .. tostring(keys[1]) .. ' mode'
     end
     for _, lhs in ipairs(keys --[[@as string[] ]]) do
-      vim.keymap.set('n', lhs, wrap(rhs), vim.tbl_extend('force', opts, { desc = desc }))
+      kset('n', lhs, wrap(rhs), vim.tbl_extend('force', opts, { desc = desc }))
     end
   end
 
   -- Insert mode.
-  vim.keymap.set('i', '<C-s>', '<C-g>u', { desc = 'helix: commit undo checkpoint' })
-  vim.keymap.set('i', '<C-x>', function()
+  kset('i', '<C-s>', '<C-g>u', { desc = 'helix: commit undo checkpoint' })
+  kset('i', '<C-x>', function()
     if vim.bo.omnifunc ~= '' then
       return '<C-x><C-o>'
     end
     return '<C-n>'
   end, { expr = true, desc = 'helix: completion' })
-  vim.keymap.set('i', '<M-BS>', '<C-g>u<C-w>', { desc = 'helix: delete previous word' })
-  vim.keymap.set(
+  kset('i', '<M-BS>', '<C-g>u<C-w>', { desc = 'helix: delete previous word' })
+  kset(
     'i',
     { '<M-d>', '<M-Del>' },
     insert_delete_word_forward,
     { desc = 'helix: delete next word' }
   )
-  vim.keymap.set('i', '<C-u>', insert_kill_to_line_start, { desc = 'helix: kill to line start' })
-  vim.keymap.set('i', '<C-k>', insert_kill_to_line_end, { desc = 'helix: kill to line end' })
-  vim.keymap.set('i', '<C-d>', '<Del>', { desc = 'helix: delete next char' })
-  vim.keymap.set('i', '<S-BS>', '<BS>', { desc = 'helix: delete previous char' })
-  vim.keymap.set('i', '<S-Tab>', function()
+  kset('i', '<C-u>', insert_kill_to_line_start, { desc = 'helix: kill to line start' })
+  kset('i', '<C-k>', insert_kill_to_line_end, { desc = 'helix: kill to line end' })
+  kset('i', '<C-d>', '<Del>', { desc = 'helix: delete next char' })
+  kset('i', '<S-BS>', '<BS>', { desc = 'helix: delete previous char' })
+  kset('i', '<S-Tab>', function()
     if fn.pumvisible() == 1 then
       return '<C-p>'
     end
     return '<C-v><Tab>'
   end, { expr = true, desc = 'helix: insert tab / previous completion' })
-  vim.keymap.set('i', '<Tab>', function()
+  kset('i', '<Tab>', function()
     if fn.pumvisible() == 1 then
       return '<C-n>'
     end
     return '<Tab>'
   end, { expr = true, desc = 'helix: smart tab / next completion' })
-  vim.keymap.set('i', '<C-c>', function()
+  kset('i', '<C-c>', function()
     if fn.pumvisible() == 1 then
       return '<C-e>'
     end
@@ -4135,22 +4153,22 @@ local function set_keymaps()
   end, { expr = true, desc = 'helix: reject completion' })
 
   -- Command-line (prompt) mode.
-  vim.keymap.set('c', { '<M-b>', '<C-Left>' }, '<S-Left>', { desc = 'helix: backward a word' })
-  vim.keymap.set('c', '<C-b>', '<Left>', { desc = 'helix: backward a char' })
-  vim.keymap.set('c', { '<M-f>', '<C-Right>' }, '<S-Right>', { desc = 'helix: forward a word' })
-  vim.keymap.set('c', '<C-f>', '<Right>', { desc = 'helix: forward a char' })
-  vim.keymap.set('c', '<C-a>', '<Home>', { desc = 'helix: move prompt start' })
-  vim.keymap.set('c', { '<M-BS>', '<C-BS>' }, '<C-w>', { desc = 'helix: delete previous word' })
-  vim.keymap.set(
+  kset('c', { '<M-b>', '<C-Left>' }, '<S-Left>', { desc = 'helix: backward a word' })
+  kset('c', '<C-b>', '<Left>', { desc = 'helix: backward a char' })
+  kset('c', { '<M-f>', '<C-Right>' }, '<S-Right>', { desc = 'helix: forward a word' })
+  kset('c', '<C-f>', '<Right>', { desc = 'helix: forward a char' })
+  kset('c', '<C-a>', '<Home>', { desc = 'helix: move prompt start' })
+  kset('c', { '<M-BS>', '<C-BS>' }, '<C-w>', { desc = 'helix: delete previous word' })
+  kset(
     'c',
     { '<M-d>', '<M-Del>', '<C-Del>' },
     cmdline_delete_word_forward,
     { desc = 'helix: delete next word' }
   )
-  vim.keymap.set('c', '<C-k>', cmdline_kill_to_end, { desc = 'helix: delete to end of line' })
-  vim.keymap.set('c', '<C-d>', '<Del>', { desc = 'helix: delete next char' })
-  vim.keymap.set('c', '<S-BS>', '<BS>', { desc = 'helix: delete previous char' })
-  vim.keymap.set('c', '<C-s>', '<C-r><C-w>', { desc = 'helix: insert word under cursor' })
+  kset('c', '<C-k>', cmdline_kill_to_end, { desc = 'helix: delete to end of line' })
+  kset('c', '<C-d>', '<Del>', { desc = 'helix: delete next char' })
+  kset('c', '<S-BS>', '<BS>', { desc = 'helix: delete previous char' })
+  kset('c', '<C-s>', '<C-r><C-w>', { desc = 'helix: insert word under cursor' })
 end
 
 -- }}}
@@ -4321,28 +4339,76 @@ end
 
 --- Enables Helix mode.
 ---@param opts? {statusline?: boolean}
-function M.setup(opts)
-  opts = opts or {}
+local helix_stl = "%{v:lua.require('vim._core.helix').mode_name()} "
+local added_onemore = false
+
+--- Enables Helix mode. Called when 'helix' is set (and at startup).
+function M.enable()
   if M.enabled then
     return
   end
   M.enabled = true
+  M.mode = 'normal'
   -- Selections can include the newline at the end of a line.
   if not vim.o.virtualedit:find('onemore') and not vim.o.virtualedit:find('all') then
     vim.opt.virtualedit:append('onemore')
+    added_onemore = true
   end
   set_highlights()
   set_keymaps()
   create_autocmds()
-  if opts.statusline ~= false then
-    local default = api.nvim_get_option_info2('statusline', {}).default
-    if vim.o.statusline == default then
-      vim.o.statusline = "%{v:lua.require('nvim.helix').mode_name()} " .. default
-    end
+  -- Show the mode (NOR, SEL, INS) in the default statusline, like Helix.
+  local default = api.nvim_get_option_info2('statusline', {}).default
+  if vim.o.statusline == default then
+    vim.o.statusline = helix_stl .. default
   end
   if vim.v.vim_did_enter == 1 then
     sel.reset_to_cursor()
   end
+end
+
+--- Called when 'helix' is set.
+---@param on boolean
+function M.sync(on)
+  if on then
+    M.enable()
+  else
+    M.disable()
+  end
+end
+
+--- Disables Helix mode, restoring the Vim keys. Called when 'helix' is reset.
+function M.disable()
+  if not M.enabled then
+    return
+  end
+  M.enabled = false
+  M.mode = 'normal'
+  M.reg_pending = nil
+  close_info()
+  for i = #installed, 1, -1 do
+    pcall(vim.keymap.del, installed[i][1], installed[i][2])
+  end
+  installed = {}
+  for _, m in ipairs(removed) do
+    pcall(fn.mapset, m)
+  end
+  removed = {}
+  pcall(api.nvim_del_augroup_by_name, 'nvim.helix')
+  vim.on_key(nil, insert_ns)
+  if added_onemore then
+    vim.opt.virtualedit:remove('onemore')
+    added_onemore = false
+  end
+  if vim.o.statusline:sub(1, #helix_stl) == helix_stl then
+    vim.o.statusline = vim.o.statusline:sub(#helix_stl + 1)
+  end
+  for buf in pairs(sel.states) do
+    if api.nvim_buf_is_valid(buf) then
+      api.nvim_buf_clear_namespace(buf, sel.ns, 0, -1)
+    end
+  end
+  sel.states = {}
 end
 
 -- }}}

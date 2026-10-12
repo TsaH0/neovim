@@ -17,8 +17,8 @@ local function setup(lines, pos)
   pos = pos or { 1, 0 }
   exec_lua(function(p)
     vim.api.nvim_win_set_cursor(0, p)
-    require('nvim.helix').mode = 'normal'
-    require('nvim.helix.sel').reset_to_cursor()
+    require('vim._core.helix').mode = 'normal'
+    require('vim._core.helix_sel').reset_to_cursor()
   end, pos)
 end
 
@@ -30,7 +30,7 @@ end
 local function sels()
   return exec_lua(function()
     local out = {}
-    for _, s in ipairs(require('nvim.helix.sel').get().sels) do
+    for _, s in ipairs(require('vim._core.helix_sel').get().sels) do
       out[#out + 1] = { s.a[1], s.a[2], s.h[1], s.h[2] }
     end
     return out
@@ -40,20 +40,20 @@ end
 --- Texts of the selections.
 local function texts()
   return exec_lua(function()
-    local sel = require('nvim.helix.sel')
+    local sel = require('vim._core.helix_sel')
     return vim.tbl_map(sel.text, sel.get().sels)
   end)
 end
 
 local function primary()
   return exec_lua(function()
-    return require('nvim.helix.sel').get().primary
+    return require('vim._core.helix_sel').get().primary
   end)
 end
 
 local function mode()
   return exec_lua(function()
-    return require('nvim.helix').mode_name()
+    return require('vim._core.helix').mode_name()
   end)
 end
 
@@ -61,7 +61,7 @@ describe('helix mode', function()
   before_each(function()
     n.clear()
     exec_lua(function()
-      require('nvim.helix').setup()
+      vim.o.helix = true
     end)
   end)
 
@@ -1003,6 +1003,63 @@ describe('helix mode', function()
     end)
   end)
 
+
+  describe("'helix' option", function()
+    it(':set nohelix restores Vim keys, :set helix brings Helix back', function()
+      setup({ 'one two', 'three' })
+      n.command('set nohelix')
+      eq(true, exec_lua('return vim.tbl_isempty(vim.fn.maparg("w", "n", false, true))'))
+      feed('dd')
+      eq({ 'three' }, lines())
+      n.command('set helix')
+      setup({ 'one two', 'three' })
+      feed('wd')
+      eq({ 'two', 'three' }, lines())
+    end)
+
+    it('restores the Nvim default mappings it replaced', function()
+      n.clear({
+        args_rm = { '--cmd' },
+        args = { '--cmd', n.runtime_set },
+        env = { NVIM_HELIX_MODE = '' },
+      })
+      eq(true, exec_lua('return vim.o.helix'))
+      eq('helix: ] mode', exec_lua('return vim.fn.maparg("]", "n", false, true).desc'))
+      eq(true, exec_lua('return vim.tbl_isempty(vim.fn.maparg("]d", "n", false, true))'))
+      n.command('set nohelix')
+      eq(false, exec_lua('return vim.tbl_isempty(vim.fn.maparg("]d", "n", false, true))'))
+      eq('', exec_lua('return vim.o.virtualedit'))
+    end)
+
+    it('is on by default, and "set nohelix" in the config disables it', function()
+      n.clear({
+        args_rm = { '--cmd' },
+        args = { '--cmd', n.runtime_set },
+        env = { NVIM_HELIX_MODE = '' },
+      })
+      eq(
+        'helix: Move to start of next word',
+        exec_lua('return vim.fn.maparg("w", "n", false, true).desc')
+      )
+      local init = t.tmpname()
+      t.write_file(init, 'set nohelix\n')
+      n.clear({
+        args_rm = { '-u', '--cmd' },
+        args = { '-u', init, '--cmd', n.runtime_set },
+        env = { NVIM_HELIX_MODE = '' },
+      })
+      eq(false, exec_lua('return vim.o.helix'))
+      eq(true, exec_lua('return vim.tbl_isempty(vim.fn.maparg("w", "n", false, true))'))
+      os.remove(init)
+    end)
+
+    it('user mappings override Helix keys', function()
+      n.command('nnoremap w <Cmd>let g:mine = 1<CR>')
+      feed('w')
+      eq(1, exec_lua('return vim.g.mine'))
+    end)
+  end)
+
   describe('misc', function()
     it('[<Space> and ]<Space> add newlines', function()
       setup({ 'a' })
@@ -1095,7 +1152,7 @@ describe('helix mode', function()
     it('every Helix keymap is mapped', function()
       local missing = exec_lua(function()
         local out = {}
-        for _, m in ipairs(require('nvim.helix').keymaps) do
+        for _, m in ipairs(require('vim._core.helix').keymaps) do
           local keys = type(m[1]) == 'table' and m[1] or { m[1] }
           for _, k in ipairs(keys) do
             if vim.tbl_isempty(vim.fn.maparg(k, 'n', false, true)) then

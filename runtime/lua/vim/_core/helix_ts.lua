@@ -5,7 +5,7 @@
 --- Helix uses textobject queries; Nvim doesn't ship those, so node kinds are
 --- recognized by type-name heuristics that work across most grammars.
 
-local sel = require('nvim.helix.sel')
+local sel = require('vim._core.helix_sel')
 
 local M = {}
 

@@ -1155,3 +1155,13 @@ do
     vim.o.grepformat = '%f:%l:%c:%m'
   end
 end
+
+--- Helix keymap and selection model, see |'helix'|. Setting 'helix' later
+--- enables/disables it (option callback).
+do
+  if vim.env.NVIM_HELIX_MODE == '0' then
+    vim.o.helix = false
+  elseif vim.o.helix then
+    require('vim._core.helix').enable()
+  end
+end
