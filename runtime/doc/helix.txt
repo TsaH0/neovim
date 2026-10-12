@@ -1,0 +1,293 @@
+*helix.txt*   Nvim
+
+
+                            NVIM REFERENCE MANUAL
+
+
+Helix mode						*helix-mode* *helix*
+
+Nvim uses the Helix editor's keymap and selection model by default:
+"selection first, then action". Everything else (LSP, tree-sitter,
+diagnostics, options, Ex commands, plugins) is the same Nvim.
+
+Reference: https://docs.helix-editor.com/keymap.html
+
+                                      Type |gO| to see the table of contents.
+
+==============================================================================
+Enabling and disabling					*helix-mode-enable*
+
+Helix mode is enabled by the builtin "helix" plugin (runtime/plugin/helix.lua).
+To use the traditional Vim keys instead, put this in your |init.lua|: >lua
+    vim.g.helix_mode = false
+<
+or set the environment variable `$NVIM_HELIX_MODE` to "0".
+
+To enable it explicitly (e.g. when plugins are disabled): >lua
+    require('nvim.helix').setup()
+<
+Options:
+- `vim.g.helix_mode = { statusline = false }`: don't prefix the default
+  'statusline' with the mode (NOR, SEL, INS).
+- `vim.g.helix_infobox = false`: don't show the key hints popup for minor
+  modes (g, m, z, Space, …).
+- `vim.g.helix_jump_label_alphabet`: labels for |helix-gw| (default
+  "abcdefghijklmnopqrstuvwxyz").
+
+Setup adds "onemore" to 'virtualedit' (selections can include line endings)
+and removes the Nvim default mappings that would shadow Helix keys (|]d|,
+|[<Space>|, |gc|, |grn|, …).
+
+To change a key, map it after setup (e.g. in `after/plugin/`). Every Helix
+command is available as a Lua function, named like in Helix: >lua
+    local hx = require('nvim.helix')
+    vim.keymap.set('n', '<C-p>', hx.commands.file_picker.fn)
+<
+==============================================================================
+Selections						*helix-selections*
+
+A selection is an anchor and a head (the cursor). Motions select text: "w"
+selects to the next word, then "d" deletes it. A 1-character selection is just
+a cursor. The primary selection's head is the Nvim cursor.
+
+There can be many selections (e.g. "%" then "s" with a regex). Edits, yanks
+and pastes apply to every selection; Insert mode types at every selection
+(using |multicursor|). Undo is atomic.
+
+Moving the cursor by other means (mouse, LSP jumps, |:{range}|) collapses the
+selections to the cursor. A Visual-mode selection (mouse drag) becomes a Helix
+selection.
+
+The primary selection is also stored in the |'<| and |'>| marks, so
+":'<,'>" Ex commands work on it.
+
+Highlight groups:
+- *hl-HelixSelection*        selections (links to |hl-Visual|)
+- *hl-HelixSelectionPrimary* the primary selection (links to |hl-Visual|)
+- *hl-HelixCursor*           cursors of non-primary selections (|hl-MCursor|)
+- *hl-HelixJumpLabel*        labels of |helix-gw| (links to |hl-Search|)
+
+==============================================================================
+Normal mode						*helix-normal*
+
+Counts work as in Helix: "3w", "5G", "2>".
+
+Movement ~
+  h, <Left>        move left               j, <Down>      move down
+  k, <Up>          move up                 l, <Right>     move right
+  w / b / e        next word start / previous word start / next word end
+  W / B / E        same for WORDs
+  f / t {char}     find / till next char (across lines)
+  F / T {char}     find / till previous char
+  {n}G, {n}gg      go to line {n}
+  Alt-.            repeat last motion (f, t, [, ])
+  <Home> / <End>   line start / end
+  CTRL-B, <PageUp> / CTRL-F, <PageDown>    page up / down
+  CTRL-U / CTRL-D  half page up / down (or scroll an LSP popup)
+  CTRL-I, <Tab> / CTRL-O   jump forward / backward on the |jumplist|
+  CTRL-S           save selection to the jumplist
+
+Changes ~
+  r {char}         replace each selected char
+  R                replace selection with yanked text
+  ~ / ` / Alt-`    switch case / lowercase / uppercase
+  i / a            insert before / append after selection
+  I / A            insert at line start / end
+  o / O            open line below / above
+  .                repeat last insert
+  u / U            undo / redo
+  Alt-u / Alt-U    move backward / forward in history (|:earlier|, |:later|)
+  y / p / P        yank / paste after / paste before
+  " {reg}          select register for the next yank, paste, delete, …
+  > / <            indent / unindent
+  =                format selection (LSP range formatting, else |=|)
+  d / Alt-d        delete (without yanking)
+  c / Alt-c        change (without yanking)
+  CTRL-A / CTRL-X  increment / decrement number
+  Q / q            record / replay macro (register "@" by default)
+  CTRL-Z           suspend
+
+Shell ~
+  |                pipe selections through a shell command, replace them
+  Alt-|            pipe selections into a shell command, ignore output
+  !                insert shell command output before selections
+  Alt-!            append shell command output after selections
+  $                keep selections for which the command exits 0
+
+Selection manipulation ~
+  s                select regex matches inside selections
+  S                split selections on regex matches
+  Alt-s            split selections on newlines
+  Alt--            merge selections
+  Alt-_            merge consecutive selections
+  &                align selections in columns
+  _                trim whitespace from selections
+  ;                collapse selection to a cursor
+  Alt-;            flip anchor and head
+  Alt-:            make selections face forward
+  ,                keep only the primary selection
+  Alt-,            remove the primary selection
+  C / Alt-C        copy selection to the next / previous line (add cursor)
+  ( / )            rotate primary selection backward / forward
+  Alt-( / Alt-)    rotate selection contents backward / forward
+  %                select the whole file
+  x                select line, extend to next line if already selected
+  X / Alt-x        extend / shrink selection to line bounds
+  J / Alt-J        join lines (and select the inserted spaces)
+  K / Alt-K        keep / remove selections matching a regex
+  CTRL-C           comment / uncomment
+  Alt-o, Alt-Up    expand selection to the parent syntax node
+  Alt-i, Alt-Down  shrink selection
+  Alt-p, Alt-Left  select previous sibling node
+  Alt-n, Alt-Right select next sibling node
+  Alt-a            select all sibling nodes
+  Alt-I, Alt-S-Down   select all children nodes
+  Alt-e / Alt-b    move to end / start of the parent node
+
+Search ~
+  / / ?            search forward / backward (selects the match)
+  n / N            select next / previous match (in select mode: add it)
+  *                search for the selection (with word boundaries)
+  Alt-*            search for the selection
+
+Regexes use Helix (Rust regex) syntax: `\d+`, `(a|b)`, `\b`, `a+?`, … They
+are translated to Vim regexes (|/\v|). A pattern starting with `\v`, `\m`,
+`\V` or `\c` is used as a Vim pattern unchanged. Lowercase patterns are
+case-insensitive (smart case).
+
+Minor modes ~
+  v                select (extend) mode: motions extend selections
+  g                goto mode       |helix-goto|
+  m                match mode      |helix-match|
+  :                command mode
+  z / Z            view mode / sticky view mode   |helix-view|
+  CTRL-W           window mode     |helix-window|
+  <Space>          space mode      |helix-space|
+  [ / ]            unimpaired      |helix-unimpaired|
+
+The key hints popup lists the keys of each minor mode.
+
+							*helix-view*
+View mode (z, Z) ~
+  z, c             center the line         t / b    line to top / bottom
+  m                center horizontally     j, k     scroll down / up
+  CTRL-F, CTRL-B, CTRL-U, CTRL-D   page / half page
+"Z" stays in view mode until <Esc>.
+
+							*helix-goto*
+Goto mode (g) ~
+  {n}g, g          line {n} / file start   |        column {n} / line start
+  e                last line               f        file/URL under selection
+  h / l / s        line start / end / first non-blank
+  t / c / b        window top / center / bottom
+  d / D / y / r / i   LSP definition / declaration / type definition /
+                   references / implementation (a picker if several)
+  a / m            last accessed / last modified file
+  n / p            next / previous buffer
+  .                last modification
+  j / k            textual line down / up
+  w							*helix-gw*
+                   jump to a word by its two-letter label
+
+							*helix-match*
+Match mode (m) ~
+  m                matching bracket
+  s {char}         surround with {char} (brackets pair up)
+  r {from}{to}     replace surrounding pair
+  d {char}         delete surrounding pair
+  a {obj} / i {obj}    select around / inside a text object:
+    w, W, p        word, WORD, paragraph
+    ( [ { < " ' `  pairs        m   closest surrounding pair
+    f, t, a, c, T, e, x   function, type, argument, comment, test, entry,
+                   (X)HTML element (tree-sitter)
+
+							*helix-window*
+Window mode (CTRL-W, <Space>w) ~
+  w, CTRL-W        next window           v, CTRL-V   vertical split
+  s, CTRL-S        horizontal split      t, CTRL-T   transpose splits
+  f / F            file under selection in a split / vertical split
+  h j k l          go to window          H J K L     swap window
+  q, CTRL-Q        close window          o, CTRL-O   only this window
+  n s / n v        new split / vertical split with a scratch buffer
+
+							*helix-space*
+Space mode (<Space>) ~
+  f / F            file picker (workspace root / cwd)
+  e / .            file explorer (workspace root / buffer dir), |:edit|
+  b / j / g        buffer / jumplist / changed (git) file picker
+  k                LSP hover
+  s / S            document / workspace symbol picker (LSP, or tree-sitter)
+  d / D            document / workspace diagnostics picker
+  r / a            LSP rename / code action
+  h                select references to the symbol under the cursor
+  '                reopen the last picker
+  w                window mode
+  c / C / Alt-c    toggle comments / block comments / line comments
+  p / P            paste the clipboard after / before
+  y / Y            yank selections / primary selection to the clipboard
+  R                replace selections with the clipboard
+  /                global search (ripgrep, or grep) in the workspace
+  ?                command palette: every command with its keys
+
+							*helix-unimpaired*
+Unimpaired ([ and ]) ~
+  ]d / [d          next / previous diagnostic
+  ]D / [D          last / first diagnostic
+  ]f ]t ]a ]c ]e ]T ]x   next function, type, argument, comment, entry,
+                   test, (X)HTML element (tree-sitter); "[" for previous
+  ]p / [p          next / previous paragraph
+  ]g / [g          next / previous change (git HEAD, or |diff-mode|)
+  ]G / [G          last / first change
+  ]<Space> / [<Space>    add a newline below / above
+
+==============================================================================
+Insert mode						*helix-insert*
+
+  <Esc>            back to Normal mode
+  CTRL-S           commit undo checkpoint
+  CTRL-X           completion ('omnifunc', e.g. LSP)
+  CTRL-R           insert register
+  CTRL-W, Alt-<BS> delete previous word
+  Alt-d, Alt-<Del> delete next word
+  CTRL-U / CTRL-K  delete to line start / end
+  CTRL-H, <BS>     delete previous char
+  CTRL-D, <Del>    delete next char
+  CTRL-J, <CR>     new line
+  <Tab> / <S-Tab>  next / previous completion item, else insert a tab
+  CTRL-C           reject completion
+
+==============================================================================
+Pickers and prompts					*helix-picker*
+
+Picker keys:
+  <Tab>, CTRL-N, <Down> / <S-Tab>, CTRL-P, <Up>   next / previous entry
+  CTRL-D, <PageDown> / CTRL-U, <PageUp>           page down / up
+  <Home> / <End>   first / last entry
+  <CR>             open             Alt-<CR>   open in the background
+  CTRL-S / CTRL-V  open in a split / vertical split
+  CTRL-T           toggle preview   <Esc>, CTRL-C   close
+
+Prompt (command-line) keys:
+  Alt-b, CTRL-<Left> / Alt-f, CTRL-<Right>   word backward / forward
+  CTRL-B / CTRL-F  char backward / forward
+  CTRL-A / CTRL-E  start / end
+  CTRL-W, Alt-<BS>, CTRL-<BS>   delete previous word
+  Alt-d, Alt-<Del>, CTRL-<Del>  delete next word
+  CTRL-U / CTRL-K  delete to start / end
+  CTRL-D, <Del>    delete next char
+  CTRL-S           insert the word under the cursor
+  CTRL-P / CTRL-N  history
+
+==============================================================================
+Differences from Helix					*helix-differences*
+
+- Helix text objects and `]f`-style motions use tree-sitter textobject
+  queries; Nvim recognizes the node kinds by name instead, which works for
+  most grammars.
+- "j" and "k" move by text lines, not wrapped screen lines.
+- <Space>G (debugging) needs a DAP plugin.
+- The signature-help popup can't cycle signatures (Alt-p/Alt-n).
+- Ex commands are Nvim's (|:w|, |:q|, …), not Helix's typable commands.
+- Vim keys without a Helix binding (D, Y, H, L, M, 0, …) do nothing.
+
+ vim:tw=78:ts=8:sw=2:et:ft=help:norl:
