@@ -264,6 +264,9 @@ BUILD
 
 DEFAULTS
 
+• |helix-mode|: Nvim uses the Helix keymap and selection model by default
+  (selection first, multiple selections, minor modes, pickers), controlled
+  by the new 'helix' option. ":set nohelix" restores the Vim keys.
 • 'rulerformat' default is exposed as a statusline expression (previously it
   was implemented as an internal C routine).
 

@@ -9,6 +9,8 @@ else()
 endif()
 
 set(ENV{NVIM_TEST} "1")
+# Tests expect Vim keys: disable the default Helix mode (helix_spec enables it explicitly).
+set(ENV{NVIM_HELIX_MODE} "0")
 # Set LC_ALL to meet expectations of some locale-sensitive tests.
 set(ENV{LC_ALL} "en_US.UTF-8")
 set(TEST_XDG_PREFIX ${BUILD_DIR}/Xtest_xdg${TEST_SUFFIX})
