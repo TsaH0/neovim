@@ -1416,6 +1416,27 @@ local options = {
       varname = 'p_ch',
     },
     {
+      abbreviation = 'clp',
+      cb = 'did_set_cmdlinepopup',
+      defaults = true,
+      desc = [=[
+        Show the |Command-line| (":", "/", "?", |input()| prompts) in a
+        floating window with a border and a title ("Cmdline", "Search", …),
+        centered near the top of the screen, instead of the last line.
+        Messages are still shown at the bottom.  Not used when |ui2| is
+        enabled, or without a UI (|--headless|).  Can be toggled at any
+        time.  Highlight groups: |hl-CmdlinePopup|, |hl-CmdlinePopupBorder|,
+        |hl-CmdlinePopupTitle|, |hl-CmdlinePopupIcon|.
+        The environment variable $NVIM_CMDLINE_POPUP set to "0" resets this
+        option at startup.
+      ]=],
+      full_name = 'cmdlinepopup',
+      scope = { 'global' },
+      short_desc = N_('show the command-line in a floating window'),
+      type = 'boolean',
+      varname = 'p_clp',
+    },
+    {
       abbreviation = 'cwh',
       defaults = 7,
       desc = [=[
@@ -5763,6 +5784,26 @@ local options = {
       short_desc = N_('load plugin scripts when starting up'),
       type = 'boolean',
       varname = 'p_lpl',
+    },
+    {
+      abbreviation = 'lad',
+      defaults = true,
+      desc = [=[
+        Automatically enable the language servers installed on your system
+        (found in $PATH) when you open a file of their filetype.  Nvim ships
+        default configs for common servers (lua-language-server, pyright,
+        rust-analyzer, gopls, clangd, typescript-language-server, …) in
+        $VIMRUNTIME/lsp/; configs from |vim.lsp.config()| or "lsp/" files
+        in your config take precedence.  See |lsp-autodetect|.
+        Applies to filetypes opened after it is set.
+        The environment variable $NVIM_LSP_AUTODETECT set to "0" resets this
+        option at startup.
+      ]=],
+      full_name = 'lspautodetect',
+      scope = { 'global' },
+      short_desc = N_('enable installed language servers automatically'),
+      type = 'boolean',
+      varname = 'p_lad',
     },
     {
       defaults = true,

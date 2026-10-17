@@ -143,6 +143,25 @@ To remove or override BUFFER-LOCAL defaults, define a |LspAttach| handler: >lua
     })
 <
 ==============================================================================
+AUTODETECT                                              *lsp-autodetect*
+
+When 'lspautodetect' is set (the default), opening a file enables the
+language servers for its filetype that are installed on your system (their
+`cmd` is found in $PATH). You don't need to configure anything: install e.g.
+`lua-language-server`, `pyright`, `rust-analyzer`, `gopls`, `clangd` or
+`typescript-language-server` and open a file.
+
+Nvim ships default configs for common servers in `$VIMRUNTIME/lsp/`. Like any
+|lsp-config|, they are merged with `lsp/<name>.lua` files of your config and
+plugins (e.g. nvim-lspconfig) and |vim.lsp.config()|, which take precedence.
+For filetypes with several possible servers, the first installed one is used
+(Python: basedpyright, pyright, then pylsp; plus ruff).
+
+Servers you enable yourself with |vim.lsp.enable()| work as usual. To turn
+autodetection off: >vim
+    set nolspautodetect
+<
+==============================================================================
 COMMANDS                                        *:lsp* *lsp-commands* *E5800*
 
                                                 *E5801*

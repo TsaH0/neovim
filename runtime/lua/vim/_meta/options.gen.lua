@@ -977,6 +977,22 @@ vim.o.ch = vim.o.cmdheight
 vim.go.cmdheight = vim.o.cmdheight
 vim.go.ch = vim.go.cmdheight
 
+--- Show the `Command-line` (":", "/", "?", `input()` prompts) in a
+--- floating window with a border and a title ("Cmdline", "Search", …),
+--- centered near the top of the screen, instead of the last line.
+--- Messages are still shown at the bottom.  Not used when `ui2` is
+--- enabled, or without a UI (`--headless`).  Can be toggled at any
+--- time.  Highlight groups: `hl-CmdlinePopup`, `hl-CmdlinePopupBorder`,
+--- `hl-CmdlinePopupTitle`, `hl-CmdlinePopupIcon`.
+--- The environment variable $NVIM_CMDLINE_POPUP set to "0" resets this
+--- option at startup.
+---
+--- @type boolean
+vim.o.cmdlinepopup = true
+vim.o.clp = vim.o.cmdlinepopup
+vim.go.cmdlinepopup = vim.o.cmdlinepopup
+vim.go.clp = vim.go.cmdlinepopup
+
 --- Number of screen lines to use for the command-line window. `cmdwin`
 ---
 --- @type integer
@@ -4269,6 +4285,22 @@ vim.o.loadplugins = true
 vim.o.lpl = vim.o.loadplugins
 vim.go.loadplugins = vim.o.loadplugins
 vim.go.lpl = vim.go.loadplugins
+
+--- Automatically enable the language servers installed on your system
+--- (found in $PATH) when you open a file of their filetype.  Nvim ships
+--- default configs for common servers (lua-language-server, pyright,
+--- rust-analyzer, gopls, clangd, typescript-language-server, …) in
+--- $VIMRUNTIME/lsp/; configs from `vim.lsp.config()` or "lsp/" files
+--- in your config take precedence.  See `lsp-autodetect`.
+--- Applies to filetypes opened after it is set.
+--- The environment variable $NVIM_LSP_AUTODETECT set to "0" resets this
+--- option at startup.
+---
+--- @type boolean
+vim.o.lspautodetect = true
+vim.o.lad = vim.o.lspautodetect
+vim.go.lspautodetect = vim.o.lspautodetect
+vim.go.lad = vim.go.lspautodetect
 
 --- Name of the errorfile for the `:make` command (see `:make_makeprg`)
 --- and the `:grep` command.

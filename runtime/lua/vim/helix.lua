@@ -294,7 +294,8 @@ end
 ---     vim.helix.textobject('f', { around = 'af', inner = 'if', desc = 'Function' })
 --- <
 ---@param key string
----@param spec {around?: string|fun(range: vim.helix.Range): vim.helix.Range?, inner?: string|fun(range: vim.helix.Range): vim.helix.Range?, desc?: string}
+---@alias vim.helix.TextobjectSide string|fun(range: vim.helix.Range): vim.helix.Range?
+---@param spec {around?: vim.helix.TextobjectSide, inner?: vim.helix.TextobjectSide, desc?: string}
 function M.textobject(key, spec)
   vim.validate('key', key, 'string')
   vim.validate('spec', spec, 'table')
@@ -417,7 +418,8 @@ end
 ---@class vim.helix.PickerOpts
 ---@field title string
 ---@field items? vim.helix.PickerItem[]
----@field dynamic? fun(query: string): vim.helix.PickerItem[] Items computed per query (no fuzzy filtering).
+--- Items computed per query (no fuzzy filtering).
+---@field dynamic? fun(query: string): vim.helix.PickerItem[]
 ---@field on_select? fun(item: vim.helix.PickerItem, how: 'edit'|'split'|'vsplit'|'bg')
 ---@field preview? boolean
 

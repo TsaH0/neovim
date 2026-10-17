@@ -374,6 +374,7 @@ local options_list = {
     { 'wildmenu', N_ 'command-line completion shows a list of matches' },
     { 'cedit', N_ 'key used to open the command-line window' },
     { 'cmdwinheight', N_ 'height of the command-line window' },
+    { 'cmdlinepopup', N_ 'show the command-line in a floating window' },
   },
   {
     header = N_ 'executing external commands',
@@ -441,6 +442,7 @@ local options_list = {
     { 'eventignore', N_ 'list of autocommand events which are to be ignored' },
     { 'eventignorewin', N_ 'list of autocommand events which are to be ignored in a window' },
     { 'loadplugins', N_ 'load plugin scripts when starting up' },
+    { 'lspautodetect', N_ 'enable installed language servers automatically' },
     { 'exrc', N_ 'enable reading .vimrc/.exrc/.gvimrc in the current directory' },
     { 'maxfuncdepth', N_ 'maximum depth of function calls' },
     { 'sessionoptions', N_ 'list of words that specifies what to put in a session file' },

@@ -1398,4 +1398,25 @@ history: >
 
 For autocompletion in insert mode, see |ins-autocompletion|.
 
+==============================================================================
+9. Popup command-line					*cmdline-popup*
+
+When 'cmdlinepopup' is set (the default, when a UI is attached), the
+command-line is shown in a floating window near the top of the screen, with a
+border and a title:
+- "Cmdline" for |:| commands, with a ">" prompt and Vimscript highlighting,
+- "Search" for |/| and |?|,
+- the prompt for |input()| ("select: " is titled "Select"), else "Input".
+Editing, completion (|cmdline-completion|), history and mappings work as
+usual. Messages are still shown at the bottom of the screen.
+
+Highlight groups:
+*hl-CmdlinePopup*	window background (links to |hl-NormalFloat|)
+*hl-CmdlinePopupBorder*	border (links to "DiagnosticInfo")
+*hl-CmdlinePopupTitle*	title (links to "DiagnosticInfo")
+*hl-CmdlinePopupIcon*	prompt icon (links to "DiagnosticInfo")
+
+To use the classic command-line: >vim
+    set nocmdlinepopup
+<
  vim:tw=78:ts=8:noet:ft=help:norl:

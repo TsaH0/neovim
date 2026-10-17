@@ -1165,3 +1165,58 @@ do
     require('vim._core.helix').enable()
   end
 end
+
+--- Popup cmdline, see |'cmdlinepopup'|. Enabled when a UI attaches.
+do
+  if vim.env.NVIM_CMDLINE_POPUP == '0' then
+    vim.o.cmdlinepopup = false
+  end
+  local group = vim.api.nvim_create_augroup('nvim.cmdline_popup.ui', {})
+  vim.api.nvim_create_autocmd('UIEnter', {
+    group = group,
+    desc = "Enable the popup cmdline ('cmdlinepopup')",
+    callback = function()
+      if vim.o.cmdlinepopup then
+        require('vim._core.cmdline_popup').enable()
+      end
+    end,
+  })
+  vim.api.nvim_create_autocmd('UILeave', {
+    group = group,
+    desc = "Disable the popup cmdline ('cmdlinepopup') without UIs",
+    callback = function()
+      vim.schedule(function()
+        if #vim.api.nvim_list_uis() == 0 then
+          require('vim._core.cmdline_popup').disable()
+        end
+      end)
+    end,
+  })
+end
+
+--- Enable installed language servers automatically, see |'lspautodetect'|.
+do
+  if vim.env.NVIM_LSP_AUTODETECT == '0' then
+    vim.o.lspautodetect = false
+  end
+  vim.api.nvim_create_autocmd('FileType', {
+    group = vim.api.nvim_create_augroup('nvim.lsp.autodetect', {}),
+    desc = "Enable installed language servers ('lspautodetect')",
+    callback = function(ev)
+      if vim.o.lspautodetect and vim.bo[ev.buf].buftype == '' then
+        require('vim._core.lsp_detect').on_filetype(ev.match)
+      end
+    end,
+  })
+end
+
+--- :Explorer, see |file-explorer|.
+do
+  vim.api.nvim_create_user_command('Explorer', function(args)
+    if args.args == '' then
+      require('vim._core.explorer').open_current()
+    else
+      require('vim._core.explorer').open(vim.fn.expand(args.args))
+    end
+  end, { nargs = '?', complete = 'dir', desc = 'Open the file explorer' })
+end

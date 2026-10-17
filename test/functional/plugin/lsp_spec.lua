@@ -5347,6 +5347,10 @@ describe('LSP', function()
           :map(function(config)
             return config.name
           end)
+          -- Ignore the configs shipped in $VIMRUNTIME/lsp/ (lsp-autodetect).
+          :filter(function(name)
+            return name == 'foo' or name == 'bar'
+          end)
           :totable()
         table.sort(config_names)
         return config_names

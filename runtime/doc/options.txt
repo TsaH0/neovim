@@ -1516,6 +1516,19 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	WARNING: `cmdheight=0` is EXPERIMENTAL. Works better with |ui2| enabled.
 
+			*'cmdlinepopup'* *'clp'* *'nocmdlinepopup'* *'noclp'*
+'cmdlinepopup' 'clp'	boolean	(default on)
+			global
+	Show the |Command-line| (":", "/", "?", |input()| prompts) in a
+	floating window with a border and a title ("Cmdline", "Search", …),
+	centered near the top of the screen, instead of the last line.
+	Messages are still shown at the bottom.  Not used when |ui2| is
+	enabled, or without a UI (|--headless|).  Can be toggled at any
+	time.  Highlight groups: |hl-CmdlinePopup|, |hl-CmdlinePopupBorder|,
+	|hl-CmdlinePopupTitle|, |hl-CmdlinePopupIcon|.
+	The environment variable $NVIM_CMDLINE_POPUP set to "0" resets this
+	option at startup.
+
 						*'cmdwinheight'* *'cwh'*
 'cmdwinheight' 'cwh'	number	(default 7)
 			global
@@ -4296,6 +4309,19 @@ A jump table for the options with a short description can be found at |Q_op|.
 	of plugins.
 	Note that using the "-u NONE" and "--noplugin" command line arguments
 	reset this option. |-u| |--noplugin|
+
+		*'lspautodetect'* *'lad'* *'nolspautodetect'* *'nolad'*
+'lspautodetect' 'lad'	boolean	(default on)
+			global
+	Automatically enable the language servers installed on your system
+	(found in $PATH) when you open a file of their filetype.  Nvim ships
+	default configs for common servers (lua-language-server, pyright,
+	rust-analyzer, gopls, clangd, typescript-language-server, …) in
+	$VIMRUNTIME/lsp/; configs from |vim.lsp.config()| or "lsp/" files
+	in your config take precedence.  See |lsp-autodetect|.
+	Applies to filetypes opened after it is set.
+	The environment variable $NVIM_LSP_AUTODETECT set to "0" resets this
+	option at startup.
 
 						*'makeef'* *'mef'*
 'makeef' 'mef'		string	(default "")

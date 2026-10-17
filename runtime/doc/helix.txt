@@ -215,7 +215,7 @@ Window mode (CTRL-W, <Space>w) ~
 							*helix-space*
 Space mode (<Space>) ~
   f / F            file picker (workspace root / cwd)
-  e / .            file explorer (workspace root / buffer dir), |:edit|
+  e / .            file explorer (root / buffer dir), |file-explorer|
   b / j / g        buffer / jumplist / changed (git) file picker
   k                LSP hover
   s / S            document / workspace symbol picker (LSP, or tree-sitter)
@@ -279,6 +279,53 @@ Prompt (command-line) keys:
   CTRL-D, <Del>    delete next char
   CTRL-S           insert the word under the cursor
   CTRL-P / CTRL-N  history
+
+==============================================================================
+File explorer					*file-explorer* *:Explorer*
+
+A file manager with yazi's keys, in three floating columns: the parent
+directory, the current directory and a preview of the hovered file or
+directory. Open it with <Space>e (workspace root) or <Space>. (directory of
+the current file, hovering it), or:
+
+:Explorer [dir]		Open the explorer in [dir] (default: the directory
+			of the current file).
+
+Keys (as in yazi):
+  j / k, <Down> / <Up>    down / up         J / K    down / up 5
+  gg / G                  top / bottom      CTRL-D / CTRL-U  half page
+  h, <Left>, -            parent directory
+  l, <Right>, <CR>, o     enter directory / open file
+  CTRL-S / CTRL-V / CTRL-T   open in split / vertical split / tab
+  <Space>                 select (and move down)
+  CTRL-A / CTRL-R         select all / invert selection
+  <Esc>                   clear selection or filter, else close
+  q, CTRL-C               close
+  a                       create a file, or a directory when the name
+                          ends with "/" (parents are created)
+  r                       rename
+  d                       move to the trash ("trash", "trash-put", "gio"),
+                          or delete if none is installed (asks first)
+  D                       delete permanently (asks first)
+  y / x                   yank (copy) / cut the selected or hovered files
+  Y, X                    cancel yank/cut
+  p / P                   paste (copy or move) here / overwriting existing
+  .                       show/hide hidden (dot) files
+  ~ / g.                  home directory / working directory
+  / / ?, n / N            find by name forward / backward, next / previous
+  f                       filter the listing by name
+  cc / cd / cf / cn       copy path / directory / file name / name without
+                          extension to the clipboard
+  ;                       run a shell command in the directory ("$@" are the
+                          selected files, "$0" the first one)
+  R                       reload
+  <F1>                    show the keys
+
+Selections and the yank/cut list survive changing directories; the yank list
+and hidden-file setting are remembered when the explorer is reopened.
+
+The |dir| listing (":edit {dir}") also gets yazi-style h / l / q keys in
+Helix mode, and "e" opens the explorer there.
 
 ==============================================================================
 Plugins and the Lua API					*helix-api* *vim.helix*

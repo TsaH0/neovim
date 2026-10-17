@@ -267,6 +267,14 @@ DEFAULTS
 • |helix-mode|: Nvim uses the Helix keymap and selection model by default
   (selection first, multiple selections, minor modes, pickers), controlled
   by the new 'helix' option. ":set nohelix" restores the Vim keys.
+• |vim.helix| API to adapt plugins (motions, operators, text objects, pickers)
+  to Helix mode. See |helix-api|.
+• |cmdline-popup|: the command-line is shown in a floating window with a
+  title ('cmdlinepopup').
+• |lsp-autodetect|: installed language servers are enabled automatically
+  ('lspautodetect'); Nvim ships configs for common servers in
+  $VIMRUNTIME/lsp/.
+• |file-explorer|: a yazi-style file manager, |:Explorer| or <Space>e.
 • 'rulerformat' default is exposed as a statusline expression (previously it
   was implemented as an internal C routine).
 

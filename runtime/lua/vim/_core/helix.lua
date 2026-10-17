@@ -2862,7 +2862,12 @@ local ts_objects = {
 }
 
 --- Textobjects added via |vim.helix.textobject()|, by key.
----@type table<string, {around?: string|fun(s: nvim.helix.Sel): nvim.helix.Sel?, inner?: string|fun(s: nvim.helix.Sel): nvim.helix.Sel?, desc?: string}>
+---@alias nvim.helix.TextobjectSide string|fun(s: nvim.helix.Sel): nvim.helix.Sel?
+---@class (private) nvim.helix.Textobject
+---@field around? nvim.helix.TextobjectSide
+---@field inner? nvim.helix.TextobjectSide
+---@field desc? string
+---@type table<string, nvim.helix.Textobject>
 M.textobjects = {}
 
 local function select_textobject(around)
@@ -3123,11 +3128,18 @@ cmd('file_picker_in_current_directory', 'Open file picker at current working dir
   file_picker(assert(vim.uv.cwd()))
 end)
 cmd('file_explorer', 'Open file explorer in workspace root', function()
-  vim.cmd.edit(fn.fnameescape(root_dir()))
+  local explorer = require('vim._core.explorer')
+  local cur = api.nvim_buf_get_name(0)
+  local root = root_dir()
+  -- Hover the current file when it is directly in the root.
+  if cur ~= '' and vim.fs.dirname(cur) == vim.fs.normalize(root) then
+    explorer.open(root, vim.fs.basename(cur))
+  else
+    explorer.open(root)
+  end
 end)
 cmd('file_explorer_in_current_buffer_directory', 'Open file explorer at buffer dir', function()
-  local d = fn.expand('%:p:h')
-  vim.cmd.edit(fn.fnameescape(d ~= '' and d or assert(vim.uv.cwd())))
+  require('vim._core.explorer').open_current()
 end)
 
 cmd('buffer_picker', 'Open buffer picker', function()
@@ -4260,6 +4272,36 @@ end
 
 local function create_autocmds()
   local group = api.nvim_create_augroup('nvim.helix', { clear = true })
+  -- Directory listings (|dir|, ":edit <dir>"): yazi-style keys.
+  api.nvim_create_autocmd('User', {
+    group = group,
+    pattern = 'DirReadPost',
+    callback = function()
+      local buf = api.nvim_get_current_buf()
+      if vim.b[buf].helix_dir_keys then
+        return
+      end
+      vim.b[buf].helix_dir_keys = true
+      local function bmap(lhs, rhs, desc)
+        vim.keymap.set('n', lhs, rhs, { buffer = buf, nowait = true, desc = desc })
+      end
+      bmap('l', '<Plug>(nvim-dir-open)', 'Open directory entry')
+      bmap('<Right>', '<Plug>(nvim-dir-open)', 'Open directory entry')
+      bmap('h', '<Plug>(nvim-dir-up)', 'Open parent directory')
+      bmap('<Left>', '<Plug>(nvim-dir-up)', 'Open parent directory')
+      bmap('q', function()
+        local alt = fn.bufnr('#')
+        if alt > 0 and alt ~= buf and api.nvim_buf_is_loaded(alt) then
+          api.nvim_set_current_buf(alt)
+        else
+          vim.cmd.enew()
+        end
+      end, 'Close directory listing')
+      bmap('e', function()
+        require('vim._core.explorer').open(api.nvim_buf_get_name(buf))
+      end, 'Open in the file explorer')
+    end,
+  })
   api.nvim_create_autocmd('CursorMoved', {
     group = group,
     callback = function(ev)
