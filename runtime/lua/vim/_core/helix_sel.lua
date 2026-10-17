@@ -328,6 +328,20 @@ function M.set(sels, primary)
   st.sels, st.primary = M.normalize(sels, primary)
   M.sync_cursor()
   M.render()
+  M.changed()
+end
+
+--- Fires |HelixSelectionChanged| (once per event-loop tick).
+local change_pending = false
+function M.changed()
+  if change_pending then
+    return
+  end
+  change_pending = true
+  vim.schedule(function()
+    change_pending = false
+    api.nvim_exec_autocmds('User', { pattern = 'HelixSelectionChanged', modeline = false })
+  end)
 end
 
 --- Moves the real cursor to the primary head.
@@ -349,6 +363,7 @@ function M.reset_to_cursor()
   local st = M.get()
   st.sels, st.primary = { { a = p, h = vim.deepcopy(p) } }, 1
   M.render()
+  M.changed()
 end
 
 --- Draws selections as extmarks.

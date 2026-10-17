@@ -281,6 +281,113 @@ Prompt (command-line) keys:
   CTRL-P / CTRL-N  history
 
 ==============================================================================
+Plugins and the Lua API					*helix-api* *vim.helix*
+
+Plugins keep working in Helix mode: they are still Nvim plugins, and their
+mappings take precedence over Helix keys. The `vim.helix` module provides
+adapters to make Vim-style plugin features behave the Helix way, so a plugin
+(or your config) can be "Helix-ified" with a few lines.
+
+Positions are `{row, col}`, 0-indexed, `col` a byte index (|api-indexing|). A
+selection is `{ anchor = pos, head = pos }`, both ends inclusive; the head of
+the primary selection is the cursor.
+
+Selections ~
+vim.helix.enabled()                                   *vim.helix.enabled()*
+    True when 'helix' is set.
+vim.helix.mode()                                         *vim.helix.mode()*
+    "normal", "select" or "insert".
+vim.helix.set_mode({mode})                           *vim.helix.set_mode()*
+    Sets "normal" or "select" mode.
+vim.helix.get_selections()                     *vim.helix.get_selections()*
+    Returns the selections of the current buffer (in buffer order) and the
+    index of the primary one.
+vim.helix.set_selections({selections}, {primary})
+                                               *vim.helix.set_selections()*
+    Replaces the selections; overlapping ones are merged.
+vim.helix.get_text()                                 *vim.helix.get_text()*
+    Returns the text of each selection.
+
+Events ~
+							*HelixModeChanged*
+User HelixModeChanged      After switching between normal and select mode.
+                           |event-data|: `{ old = mode, new = mode }`.
+							*HelixSelectionChanged*
+User HelixSelectionChanged After the selections changed (at most once per
+                           event-loop iteration).
+
+Adapters ~
+vim.helix.motion({fn}, {opts})                         *vim.helix.motion()*
+    Returns a mapping callback that runs {fn}, a function moving the cursor
+    (a jump, search or "go to" of a plugin), and turns the result into a
+    selection: collapsed at the target, or from the old cursor with
+    `{ range = true }`, or extended in select mode. A Visual selection made
+    by the plugin becomes the selection. Asynchronous motions are handled.
+vim.helix.operator({op}, {opts})                     *vim.helix.operator()*
+    Returns a mapping callback applying a Vim operator to every selection.
+    {op} is the keys of a Visual-mode command or plugin mapping (run with
+    mappings enabled, Visual mode linewise for whole-line selections, or
+    `{ linewise = true/false }`), or a function receiving each selection's
+    range `{ start = pos, end_ = pos, linewise = bool }`. Afterwards each
+    selection covers the changed text.
+vim.helix.textobject({key}, {spec})                *vim.helix.textobject()*
+    Adds `m a {key}` / `m i {key}` text objects. `spec.around`/`spec.inner`
+    are the keys of a Vim text object (e.g. a plugin's "af") or a function
+    from a range to a range (or nil). `spec.desc` shows in the key hints.
+
+Keys and commands ~
+vim.helix.map({menu}, {lhs}, {rhs}, {desc})               *vim.helix.map()*
+    Maps {lhs} in "normal" mode or in a minor mode: "goto", "match", "view",
+    "window", "space", "[" or "]". {rhs} is a function or the name of a
+    Helix command. Minor-mode keys appear in the key hints popup.
+vim.helix.unmap({menu}, {lhs})                          *vim.helix.unmap()*
+    Removes a key added by Helix mode or |vim.helix.map()|.
+vim.helix.commands()                                 *vim.helix.commands()*
+    Returns the Helix commands by name (as in Helix: "file_picker",
+    "select_regex", …): `{ fn = function, desc = string, keys = string }`.
+vim.helix.add_command({name}, {fn}, {desc})       *vim.helix.add_command()*
+    Adds a command, listed in the command palette (<Space>?) and usable by
+    name in |vim.helix.map()|.
+
+Pickers ~
+vim.helix.pick({opts})                                   *vim.helix.pick()*
+    Opens the builtin picker. {opts}: `title`, `items` (`{ text, file?,
+    buf?, lnum?, col?, action? }`), or `dynamic` (function from the query
+    to items), `on_select(item, how)`, `preview`.
+vim.helix.set_picker({fn})                         *vim.helix.set_picker()*
+    Uses {fn}({opts}) as the UI for every Helix picker (files, buffers,
+    symbols, diagnostics, …); it must call `opts.on_select(item, "edit")`
+    for the chosen item. nil restores the builtin picker.
+
+Recipes ~
+Jump plugins (hop, leap, flash, …): wrap the jump as a motion: >lua
+    vim.keymap.set('n', 'gj', vim.helix.motion(function()
+      require('flash').jump()
+    end))
+<
+Operator plugins (comment, surround, sort, replace-with-register, …): use
+their Visual-mode mapping on all selections: >lua
+    -- nvim-surround's Visual-mode "S", on every selection:
+    vim.keymap.set('n', 'gS', vim.helix.operator('S'))
+<
+Text object plugins (tree-sitter textobjects, mini.ai, …): >lua
+    vim.helix.textobject('o', { around = 'ao', inner = 'io', desc = 'Loop' })
+<
+Picker plugins (Telescope, fzf-lua, …): put them on Space-mode keys, or use
+them for all Helix pickers: >lua
+    vim.helix.map('space', 'f', function()
+      require('telescope.builtin').find_files()
+    end, 'Find files')
+    vim.helix.set_picker(function(opts)
+      vim.ui.select(opts.items or {}, {
+        prompt = opts.title,
+        format_item = function(item) return item.text end,
+      }, function(item)
+        if item then opts.on_select(item, 'edit') end
+      end)
+    end)
+<
+==============================================================================
 Differences from Helix					*helix-differences*
 
 - Helix text objects and `]f`-style motions use tree-sitter textobject

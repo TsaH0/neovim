@@ -1060,6 +1060,195 @@ describe('helix mode', function()
     end)
   end)
 
+
+  describe('vim.helix API', function()
+    it('get/set selections, get_text, mode', function()
+      setup({ 'foo bar baz' })
+      exec_lua(function()
+        vim.helix.set_selections({
+          { anchor = { 0, 0 }, head = { 0, 2 } },
+          { anchor = { 0, 8 }, head = { 0, 10 } },
+        }, 1)
+      end)
+      eq({ 'foo', 'baz' }, exec_lua('return vim.helix.get_text()'))
+      eq({ 1, 2 }, api.nvim_win_get_cursor(0))
+      local got, p = unpack(exec_lua('return { vim.helix.get_selections() }'))
+      eq({ anchor = { 0, 8 }, head = { 0, 10 } }, got[2])
+      eq(1, p)
+      eq('normal', exec_lua('return vim.helix.mode()'))
+      feed('v')
+      eq('select', exec_lua('return vim.helix.mode()'))
+      feed('<Esc>i')
+      eq('insert', exec_lua('return vim.helix.mode()'))
+      feed('<Esc>')
+    end)
+
+    it('fires HelixModeChanged and HelixSelectionChanged', function()
+      setup({ 'foo bar' })
+      exec_lua(function()
+        _G.events = {}
+        vim.api.nvim_create_autocmd('User', {
+          pattern = { 'HelixModeChanged', 'HelixSelectionChanged' },
+          callback = function(ev)
+            table.insert(_G.events, ev.match .. (ev.data and (':' .. ev.data.new) or ''))
+          end,
+        })
+      end)
+      feed('w')
+      n.poke_eventloop()
+      feed('v<Esc>')
+      n.poke_eventloop()
+      eq({
+        'HelixSelectionChanged',
+        'HelixModeChanged:select',
+        'HelixModeChanged:normal',
+      }, exec_lua('return _G.events'))
+    end)
+
+    it('motion() adapts a jump plugin (sync and async)', function()
+      setup({ 'aaa bbb', 'ccc ddd' })
+      exec_lua(function()
+        -- A fake "jump plugin": reads a key, jumps to a target.
+        local function jump()
+          local k = vim.fn.getcharstr()
+          vim.api.nvim_win_set_cursor(0, k == 'x' and { 2, 4 } or { 1, 4 })
+        end
+        vim.keymap.set('n', '<F2>', vim.helix.motion(jump))
+        vim.keymap.set('n', '<F3>', vim.helix.motion(jump, { range = true }))
+        vim.keymap.set(
+          'n',
+          '<F4>',
+          vim.helix.motion(function()
+            vim.schedule(function()
+              vim.api.nvim_win_set_cursor(0, { 2, 0 })
+            end)
+          end)
+        )
+      end)
+      feed('<F2>x')
+      eq({ { 1, 4, 1, 4 } }, sels())
+      feed('gg<F3>x')
+      eq({ 'aaa bbb\nccc d' }, texts())
+      feed('ggv<F2>y<Esc>')
+      eq({ 'aaa b' }, texts())
+      feed('gg<F4>')
+      n.poke_eventloop()
+      n.poke_eventloop()
+      eq({ { 1, 0, 1, 0 } }, sels())
+    end)
+
+    it('motion() uses a Visual selection left by the plugin', function()
+      setup({ 'one two three' })
+      exec_lua(function()
+        vim.keymap.set('n', '<F2>', vim.helix.motion(function()
+          vim.cmd('normal! 5|viw')
+        end))
+      end)
+      feed('<F2>')
+      eq('NOR', mode())
+      eq({ 'two' }, texts())
+    end)
+
+    it('operator() applies a Visual command/mapping to every selection', function()
+      setup({ 'foo bar', 'baz qux' })
+      exec_lua(function()
+        vim.keymap.set('n', '<F2>', vim.helix.operator('U'))
+        -- A plugin-style Visual mapping.
+        vim.keymap.set('x', '<Plug>(Wrap)', 'c[<C-r>"]<Esc>')
+        vim.keymap.set('n', '<F3>', vim.helix.operator('<Plug>(Wrap)'))
+        vim.keymap.set(
+          'n',
+          '<F4>',
+          vim.helix.operator(function(r)
+            vim.api.nvim_buf_set_text(0, r.start[1], r.start[2], r.start[1], r.start[2], { '>' })
+          end)
+        )
+      end)
+      feed('%s\\w+<CR>')
+      eq({ 'foo', 'bar', 'baz', 'qux' }, texts())
+      feed('<F2>')
+      eq({ 'FOO BAR', 'BAZ QUX' }, lines())
+      eq({ 'FOO', 'BAR', 'BAZ', 'QUX' }, texts())
+      feed('<F3>')
+      eq({ '[FOO] [BAR]', '[BAZ] [QUX]' }, lines())
+      setup({ 'a', 'b' })
+      feed('%<M-s><F4>')
+      eq({ '>a', '>b' }, lines())
+    end)
+
+    it('operator() linewise on whole-line selections', function()
+      setup({ 'b', 'a', 'c' })
+      exec_lua(function()
+        vim.keymap.set('n', '<F2>', vim.helix.operator(':sort<CR>'))
+      end)
+      feed('xx<F2>')
+      eq({ 'a', 'b', 'c' }, lines())
+    end)
+
+    it('textobject() adds match-mode objects', function()
+      setup({ 'x <<a b>> y' }, { 1, 4 })
+      exec_lua(function()
+        -- Vim text object keys (a plugin's omap/xmap work the same).
+        vim.helix.textobject('A', { around = 'a<', inner = 'i<', desc = 'Angle' })
+        vim.helix.textobject('L', {
+          around = function(r)
+            return { start = { r.start[1], 0 }, end_ = { r.start[1], 3 } }
+          end,
+        })
+      end)
+      feed('miA')
+      eq({ 'a b' }, texts())
+      feed('maA')
+      eq({ '<a b>' }, texts())
+      feed('maL')
+      eq({ 'x <<' }, texts())
+    end)
+
+    it('map() adds keys to minor modes; unmap() removes them', function()
+      setup({ 'a', 'b', 'c' })
+      exec_lua(function()
+        vim.helix.map('space', 'z', function()
+          vim.g.called = true
+        end, 'Test')
+        vim.helix.map('goto', 'x', 'goto_last_line')
+        vim.helix.map('normal', '<F5>', 'select_all')
+      end)
+      feed('<Space>z')
+      eq(true, exec_lua('return vim.g.called'))
+      feed('gx')
+      eq({ { 2, 0, 2, 0 } }, sels())
+      feed('<F5>')
+      eq({ 'a\nb\nc\n' }, texts())
+      exec_lua('vim.helix.unmap("goto", "x")')
+      feed('ggjgx')
+      eq({ { 1, 0, 1, 0 } }, sels())
+    end)
+
+    it('add_command() appears in the palette; set_picker() replaces the picker UI', function()
+      setup({ 'a' })
+      exec_lua(function()
+        vim.helix.add_command('my_cmd', function()
+          vim.g.mine = 1
+        end, 'My command')
+        assert(vim.helix.commands().my_cmd)
+        _G.picked = nil
+        vim.helix.set_picker(function(opts)
+          _G.picked = opts.title
+          for _, item in ipairs(opts.items) do
+            if item.text:find('my_cmd') then
+              opts.on_select(item, 'edit')
+            end
+          end
+        end)
+      end)
+      feed('<Space>?')
+      n.poke_eventloop()
+      eq('Command palette', exec_lua('return _G.picked'))
+      eq(1, exec_lua('return vim.g.mine'))
+      exec_lua('vim.helix.set_picker(nil)')
+    end)
+  end)
+
   describe('misc', function()
     it('[<Space> and ]<Space> add newlines', function()
       setup({ 'a' })

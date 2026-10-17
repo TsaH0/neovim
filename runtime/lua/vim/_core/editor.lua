@@ -26,6 +26,7 @@ for k, v in pairs({
   net = true,
   pos = true,
   range = true,
+  helix = true,
 }) do
   vim._submodules[k] = v
 end

@@ -81,9 +81,18 @@ function M.jump(item, how)
   end
 end
 
+--- Replacement picker UI, set by |vim.helix.set_picker()|.
+---@type fun(opts: nvim.helix.PickerOpts)?
+M.backend = nil
+
 ---@param opts nvim.helix.PickerOpts
 function M.open(opts)
   M.last = opts
+  opts.on_select = opts.on_select or M.jump
+  if M.backend then
+    M.backend(opts)
+    return
+  end
   local on_select = opts.on_select or M.jump
   local all = opts.items or {}
   local shown = all ---@type nvim.helix.PickerItem[]

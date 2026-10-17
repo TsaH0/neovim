@@ -2222,7 +2222,13 @@ end
 ---@param title string
 ---@param entries nvim.helix.Entry[]
 ---@param sticky? boolean stay in the mode until <Esc>
-local function prefix(title, entries, sticky, keyprefix)
+--- Minor-mode menus by name ("goto", "space", …), extensible via |vim.helix.map()|.
+---@type table<string, nvim.helix.Entry[]>
+M.menus = {}
+
+--- Builds the key lookup and info lines of a menu (entries can change at runtime).
+---@param entries nvim.helix.Entry[]
+local function menu_lookup(entries)
   local lookup = {} ---@type table<string, fun()>
   local info = {}
   for _, e in ipairs(entries) do
@@ -2232,10 +2238,6 @@ local function prefix(title, entries, sticky, keyprefix)
     if type(f) == 'string' then
       local c = M.commands[f]
       desc = desc or (c and c.desc) or f
-      if c and keyprefix then
-        local k = keyprefix .. ' ' .. table.concat(keys --[[@as string[] ]], '/')
-        c.keys = c.keys and (c.keys .. ', ' .. k) or k
-      end
       local name = f
       f = function()
         M.commands[name].fn()
@@ -2246,7 +2248,21 @@ local function prefix(title, entries, sticky, keyprefix)
     end
     info[#info + 1] = { table.concat(keys --[[@as string[] ]], ', '), desc or '' }
   end
+  return lookup, info
+end
+
+local function prefix(title, entries, sticky, keyprefix)
+  -- Record the keys of the commands, for the command palette.
+  for _, e in ipairs(entries) do
+    local c = type(e[2]) == 'string' and M.commands[e[2]]
+    if c and keyprefix then
+      local keys = type(e[1]) == 'table' and e[1] or { e[1] }
+      local k = keyprefix .. ' ' .. table.concat(keys --[[@as string[] ]], '/')
+      c.keys = c.keys and (c.keys .. ', ' .. k) or k
+    end
+  end
   return function()
+    local lookup, info = menu_lookup(entries)
     repeat
       show_info(title, info)
       local k = getkey()
@@ -2803,11 +2819,13 @@ end)
 
 --- Vim text object via Visual mode, from position `p`.
 ---@return nvim.helix.Sel?
-local function vim_textobject(p, obj, n)
+local function vim_textobject(p, obj, n, remap)
   sel.busy = true
   M.internal_visual = true
   api.nvim_win_set_cursor(0, { p[1] + 1, p[2] })
-  local ok = pcall(vim.cmd, ('silent normal! v%d%s\27'):format(n, obj))
+  local v = remap and vim.keycode('<Plug>(helix-visual)') or 'v'
+  local keys = ('%s%d%s'):format(v, n, vim.keycode(obj)) .. '\27'
+  local ok = pcall(vim.cmd, (remap and 'silent normal ' or 'silent normal! ') .. keys)
   M.internal_visual = false
   sel.busy = false
   if not ok then
@@ -2822,7 +2840,7 @@ local function vim_textobject(p, obj, n)
     s.a[2] = 0
     s.h[2] = #sel.line(s.h[1])
   end
-  if sel.cmp(s.a, s.h) == 0 and sel.cmp(s.a, p) == 0 and not obj:match('[wW]$') then
+  if not remap and sel.cmp(s.a, s.h) == 0 and sel.cmp(s.a, p) == 0 and not obj:match('[wW]$') then
     -- Text object failed: Vim leaves a 1-char selection at the cursor.
     local ch = sel.char(p)
     local key = obj:sub(2)
@@ -2843,6 +2861,10 @@ local ts_objects = {
   x = 'xml',
 }
 
+--- Textobjects added via |vim.helix.textobject()|, by key.
+---@type table<string, {around?: string|fun(s: nvim.helix.Sel): nvim.helix.Sel?, inner?: string|fun(s: nvim.helix.Sel): nvim.helix.Sel?, desc?: string}>
+M.textobjects = {}
+
 local function select_textobject(around)
   return function()
     local n = count()
@@ -2851,9 +2873,17 @@ local function select_textobject(around)
       return
     end
     local ts = require('vim._core.helix_ts')
+    local ext = M.textobjects[k]
     sel.transform(function(s)
       local r
-      if ts_objects[k] then
+      if ext then
+        local obj = around and ext.around or ext.inner
+        if type(obj) == 'function' then
+          r = obj(s)
+        elseif obj then
+          r = vim_textobject(sel.from(s), obj, n, true)
+        end
+      elseif ts_objects[k] then
         if not ts.available() then
           return s
         end
@@ -2898,7 +2928,11 @@ local textobject_info = {
 
 local function with_info(title, info, f)
   return function()
-    show_info(title, info)
+    local all = vim.list_extend({}, info)
+    for k, o in pairs(M.textobjects) do
+      all[#all + 1] = { k, o.desc or '' }
+    end
+    show_info(title, all)
     -- `f` reads the key; close the box afterwards.
     local ok, err = pcall(f)
     close_info()
@@ -3745,20 +3779,28 @@ local prev_entries = {
 
 -- Mode switching.
 
-cmd('select_mode', 'Enter selection extend mode', function()
-  if M.mode == 'select' then
-    M.mode = 'normal'
-  else
-    M.mode = 'select'
+--- Sets the Helix mode ("normal" or "select"), firing |HelixModeChanged|.
+---@param mode 'normal'|'select'
+function M.set_mode(mode)
+  if M.mode == mode then
+    return
   end
+  local old = M.mode
+  M.mode = mode
   vim.cmd.redrawstatus()
+  api.nvim_exec_autocmds('User', {
+    pattern = 'HelixModeChanged',
+    modeline = false,
+    data = { old = old, new = mode },
+  })
+end
+
+cmd('select_mode', 'Enter selection extend mode', function()
+  M.set_mode(M.mode == 'select' and 'normal' or 'select')
 end)
 
 cmd('normal_mode', 'Enter normal mode', function()
-  if M.mode == 'select' then
-    M.mode = 'normal'
-    vim.cmd.redrawstatus()
-  end
+  M.set_mode('normal')
   close_info()
 end)
 
@@ -3855,6 +3897,14 @@ end
 -- }}}
 
 -- Keymaps {{{
+
+M.menus.goto = goto_entries
+M.menus.match = match_entries
+M.menus.view = view_entries
+M.menus.window = window_entries
+M.menus.space = space_entries
+M.menus[']'] = next_entries
+M.menus['['] = prev_entries
 
 --- Normal-mode (and select-mode) keys → command names (or functions).
 ---@type {[1]: string|string[], [2]: string|fun()}[]
@@ -4088,6 +4138,11 @@ end
 
 local function set_keymaps()
   local opts = { nowait = true }
+  -- Native Visual-mode entry points, for running plugin keys with mappings
+  -- enabled (Helix maps "v" and "g").
+  kset('n', '<Plug>(helix-visual)', 'v')
+  kset('n', '<Plug>(helix-visual-line)', 'V')
+  kset('n', '<Plug>(helix-reselect)', 'gv')
   for _, lhs in ipairs(default_maps) do
     for _, mode in ipairs({ 'n', 'x' }) do
       local m = fn.maparg(lhs, mode, false, true)
@@ -4418,6 +4473,13 @@ end
 -- }}}
 
 M.sel = sel
+M._wrap = wrap
+M._motion = motion
+M._push_jump = push_jump
+M._vim_textobject = vim_textobject
+M._show_info = show_info
+M._close_info = close_info
+M._finish_insert = finish_insert
 M.regs = regs
 M.reg_read = reg_read
 M.reg_write = reg_write
