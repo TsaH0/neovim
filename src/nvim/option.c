@@ -2295,6 +2295,20 @@ static const char *did_set_equalalways(optset_T *args)
   return NULL;
 }
 
+/// Process the updated 'lspautodetect' option value.
+static const char *did_set_lspautodetect(optset_T *args FUNC_ATTR_UNUSED)
+{
+  MAXSIZE_TEMP_ARRAY(a, 1);
+  ADD_C(a, BOOLEAN_OBJ(p_lad));
+  Error err = ERROR_INIT;
+  NLUA_EXEC_STATIC("require('vim._core.lsp_detect').sync(...)", a, kRetNilBool, NULL, &err);
+  if (ERROR_SET(&err)) {
+    semsg("E5108: %s", err.msg);
+    api_clear_error(&err);
+  }
+  return NULL;
+}
+
 /// Process the updated 'cmdlinepopup' option value.
 static const char *did_set_cmdlinepopup(optset_T *args FUNC_ATTR_UNUSED)
 {

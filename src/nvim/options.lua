@@ -5787,6 +5787,7 @@ local options = {
     },
     {
       abbreviation = 'lad',
+      cb = 'did_set_lspautodetect',
       defaults = true,
       desc = [=[
         Automatically enable the language servers installed on your system

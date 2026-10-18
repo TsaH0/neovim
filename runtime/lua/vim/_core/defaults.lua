@@ -1198,16 +1198,9 @@ end
 do
   if vim.env.NVIM_LSP_AUTODETECT == '0' then
     vim.o.lspautodetect = false
+  else
+    require('vim._core.lsp_detect').sync(vim.o.lspautodetect)
   end
-  vim.api.nvim_create_autocmd('FileType', {
-    group = vim.api.nvim_create_augroup('nvim.lsp.autodetect', {}),
-    desc = "Enable installed language servers ('lspautodetect')",
-    callback = function(ev)
-      if vim.o.lspautodetect and vim.bo[ev.buf].buftype == '' then
-        require('vim._core.lsp_detect').on_filetype(ev.match)
-      end
-    end,
-  })
 end
 
 --- :Explorer, see |file-explorer|.

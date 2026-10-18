@@ -118,6 +118,26 @@ function M.on_filetype(ft)
   end
 end
 
+--- Creates (or removes, when `on` is false) the FileType autocommand.
+--- Called when 'lspautodetect' is set, and at startup.
+---@param on boolean
+function M.sync(on)
+  local group = vim.api.nvim_create_augroup('nvim.lsp.autodetect', {})
+  if not on then
+    vim.api.nvim_del_augroup_by_id(group)
+    return
+  end
+  vim.api.nvim_create_autocmd('FileType', {
+    group = group,
+    desc = "Enable installed language servers ('lspautodetect')",
+    callback = function(ev)
+      if vim.bo[ev.buf].buftype == '' then
+        M.on_filetype(ev.match)
+      end
+    end,
+  })
+end
+
 --- Forgets cached results (e.g. after installing a server).
 function M.reset()
   checked, available = {}, {}
