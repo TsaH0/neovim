@@ -58,7 +58,7 @@ foreach(PACKAGE ${PACKAGES})
 
     install_helper(
       FILES ${GENERATED_PACKAGE_DIR}/${PACKNAME}/doc/tags "${${PACKNAME}_DOC_NAMES}"
-      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nvim/runtime/pack/dist/opt/${PACKNAME}/doc)
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/spider/runtime/pack/dist/opt/${PACKNAME}/doc)
 
     list(APPEND GENERATED_PACKAGE_TAGS "${GENERATED_PACKAGE_DIR}/${PACKNAME}/doc/tags")
   endif()
@@ -99,33 +99,34 @@ add_custom_target(
 
 install_helper(
   FILES ${GENERATED_HELP_TAGS} ${BUILDDOCFILES}
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nvim/runtime/doc)
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/spider/runtime/doc)
 
 install_helper(
   FILES ${GENERATED_SYN_VIM}
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nvim/runtime/syntax/vim)
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/spider/runtime/syntax/vim)
 
 if(NOT APPLE)
   install_helper(
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/org.neovim.nvim.desktop
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/spider.desktop
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
 endif()
 
 install_helper(
   FILES ${CMAKE_CURRENT_SOURCE_DIR}/nvim.png
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps)
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps
+  RENAME spider.png)
 
 file(GLOB RUNTIME_ROOT_FILES CONFIGURE_DEPENDS *.vim *.lua *.ico)
 install_helper(FILES ${RUNTIME_ROOT_FILES}
-               DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nvim/runtime/)
+               DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/spider/runtime/)
 
 file(GLOB RUNTIME_DIRS CONFIGURE_DEPENDS */)
 foreach(D ${RUNTIME_DIRS})
   if(IS_DIRECTORY ${D})
     install_helper(DIRECTORY ${D}
-                   DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nvim/runtime/)
+                   DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/spider/runtime/)
   endif()
 endforeach()
 
 # only foo.sh script in runtime/
-install_helper(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/less.sh DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nvim/runtime/scripts/)
+install_helper(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/less.sh DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/spider/runtime/scripts/)

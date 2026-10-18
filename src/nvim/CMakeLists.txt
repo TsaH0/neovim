@@ -775,7 +775,15 @@ if(STATIC_BUILD)
 endif()
 target_link_libraries(nvim_bin PRIVATE main_lib PUBLIC libuv)
 
-install_helper(TARGETS nvim_bin)
+# Installed as "spider" (the build tree keeps bin/nvim for tests and scripts).
+install(PROGRAMS $<TARGET_FILE:nvim_bin>
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
+  RENAME spider${CMAKE_EXECUTABLE_SUFFIX})
+if(NOT WIN32)
+  add_custom_command(TARGET nvim_bin POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink nvim ${PROJECT_BINARY_DIR}/bin/spider
+    VERBATIM)
+endif()
 if(MSVC)
   install(FILES $<TARGET_PDB_FILE:nvim_bin> DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
 endif()
@@ -851,15 +859,15 @@ if(CYGWIN)
   endif()
 endif()
 
-install(DIRECTORY ${BINARY_LIB_DIR}
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+install(DIRECTORY ${BINARY_LIB_DIR}/
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/spider
   USE_SOURCE_PERMISSIONS)
 
 if(NOT PREFER_LUA)
   # install luajit runtime files if bundled
   if(EXISTS ${LUAJIT_RUNTIME_DIR})
     install(DIRECTORY ${LUAJIT_RUNTIME_DIR}
-      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/nvim/runtime/lua
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/spider/runtime/lua
       USE_SOURCE_PERMISSIONS)
   endif()
 endif()

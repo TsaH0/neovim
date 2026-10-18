@@ -2219,17 +2219,17 @@ describe('ui/builtin messages', function()
     feed(':intro<CR>')
     screen:expect([[
                                                                                       |*3
-                                           {16:│} {26:╲} {26:││}                                     |
-                                           {16:││}{26:╲╲││}                                     |
-                                           {16:││} {26:╲} {26:│}                                     |
+                                          {26:╲} {26:╲} {26:╱} {26:╱}                                     |
+                                           {16:─}({16:●●}){16:─}                                     |
+                                          {16:╱} {16:╱} {26:╲} {26:╲}                                     |
                                                                                       |
       {MATCH:.*}|
                         {1:────────────────────────────────────────────}                  |
-                        Nvim is open source and freely distributable                  |
-                                  https://neovim.io/#chat                             |
+                           Neovim, with Helix keys and selections                     |
+                            open source and freely distributable                      |
                         {1:────────────────────────────────────────────}                  |
-                        type  {18::}{25:help nvim}{18:<Enter>}     if you are new!                   |
-                        type  {18::}{25:checkhealth}{18:<Enter>}   to optimize Nvim                  |
+                        type  {18::}{25:help spider}{18:<Enter>}   if you are new!                   |
+                        type  {18::}{25:checkhealth}{18:<Enter>}   to check setup                    |
                         type  {18::}{25:q}{18:<Enter>}             to exit                           |
                         type  {18::}{25:help}{18:<Enter>}          for help                          |
                         {1:────────────────────────────────────────────}                  |
@@ -2247,7 +2247,7 @@ describe('ui/builtin messages', function()
   it(':intro with small screen #38396', function()
     screen:try_resize(80, 6)
     feed(':intro<CR>')
-    screen:expect({ any = 'NVIM' })
+    screen:expect({ any = 'SPIDER' })
     feed('<CR>')
     assert_alive()
   end)
@@ -2289,17 +2289,17 @@ describe('ui/ext_messages', function()
     local introscreen = [[
       ^                                                                                |
       {1:~                                                                               }|*2
-      {1:~                                    }{16:│} {26:╲} {26:││}{1:                                     }|
-      {1:~                                    }{16:││}{26:╲╲││}{1:                                     }|
-      {1:~                                    }{16:││} {26:╲} {26:│}{1:                                     }|
+      {1:~                                   }{26:╲} {26:╲} {26:╱} {26:╱}{1:                                     }|
+      {1:~                                    }{16:─}({16:●●}){16:─}{1:                                     }|
+      {1:~                                   }{16:╱} {16:╱} {26:╲} {26:╲}{1:                                     }|
       {1:~                                                                               }|
-      {1:~{MATCH: +}}{26:NVIM {MATCH:%S+}}{1:{MATCH: +}}|
+      {1:~{MATCH: +}}{26:SPIDER {MATCH:%S+}}{1:{MATCH: +}}|
       {1:~                 ────────────────────────────────────────────                  }|
-      {1:~                 }Nvim is open source and freely distributable{1:                  }|
-      {1:~                           }https://neovim.io/#chat{1:                             }|
+      {1:~                    }Neovim, with Helix keys and selections{1:                     }|
+      {1:~                     }open source and freely distributable{1:                      }|
       {1:~                 ────────────────────────────────────────────                  }|
-      {1:~                 }type  {18::}{25:help nvim}{18:<Enter>}     if you are new! {1:                  }|
-      {1:~                 }type  {18::}{25:checkhealth}{18:<Enter>}   to optimize Nvim{1:                  }|
+      {1:~                 }type  {18::}{25:help spider}{18:<Enter>}   if you are new! {1:                  }|
+      {1:~                 }type  {18::}{25:checkhealth}{18:<Enter>}   to check setup  {1:                  }|
       {1:~                 }type  {18::}{25:q}{18:<Enter>}             to exit         {1:                  }|
       {1:~                 }type  {18::}{25:help}{18:<Enter>}          for help        {1:                  }|
       {1:~                 ────────────────────────────────────────────                  }|
@@ -2329,17 +2329,17 @@ describe('ui/ext_messages', function()
         ^                                                                                |
         {1:~    }{4:     }{1:                                                                      }|
         {1:~                                                                               }|
-        {1:~                                    }{16:│} {26:╲} {26:││}{1:                                     }|
-        {1:~                                    }{16:││}{26:╲╲││}{1:                                     }|
-        {1:~                                    }{16:││} {26:╲} {26:│}{1:                                     }|
+        {1:~                                   }{26:╲} {26:╲} {26:╱} {26:╱}{1:                                     }|
+        {1:~                                    }{16:─}({16:●●}){16:─}{1:                                     }|
+        {1:~                                   }{16:╱} {16:╱} {26:╲} {26:╲}{1:                                     }|
         {1:~                                                                               }|
-        {1:~{MATCH: +}}{26:NVIM {MATCH:%S+}}{1:{MATCH: +}}|
+        {1:~{MATCH: +}}{26:SPIDER {MATCH:%S+}}{1:{MATCH: +}}|
         {1:~                 ────────────────────────────────────────────                  }|
-        {1:~                 }Nvim is open source and freely distributable{1:                  }|
-        {1:~                           }https://neovim.io/#chat{1:                             }|
+        {1:~                    }Neovim, with Helix keys and selections{1:                     }|
+        {1:~                     }open source and freely distributable{1:                      }|
         {1:~                 ────────────────────────────────────────────                  }|
-        {1:~                 }type  {18::}{25:help nvim}{18:<Enter>}     if you are new! {1:                  }|
-        {1:~                 }type  {18::}{25:checkhealth}{18:<Enter>}   to optimize Nvim{1:                  }|
+        {1:~                 }type  {18::}{25:help spider}{18:<Enter>}   if you are new! {1:                  }|
+        {1:~                 }type  {18::}{25:checkhealth}{18:<Enter>}   to check setup  {1:                  }|
         {1:~                 }type  {18::}{25:q}{18:<Enter>}             to exit         {1:                  }|
         {1:~                 }type  {18::}{25:help}{18:<Enter>}          for help        {1:                  }|
         {1:~                 ────────────────────────────────────────────                  }|
@@ -2370,17 +2370,17 @@ describe('ui/ext_messages', function()
       grid = [[
         ^                                                                                |
                                                                                         |*2
-                                             {16:│} {26:╲} {26:││}                                     |
-                                             {16:││}{26:╲╲││}                                     |
-                                             {16:││} {26:╲} {26:│}                                     |
+                                            {26:╲} {26:╲} {26:╱} {26:╱}                                     |
+                                             {16:─}({16:●●}){16:─}                                     |
+                                            {16:╱} {16:╱} {26:╲} {26:╲}                                     |
                                                                                         |
-        {MATCH: +}{26:NVIM {MATCH:%S+}}{MATCH: +}|
+        {MATCH: +}{26:SPIDER {MATCH:%S+}}{MATCH: +}|
                           {1:────────────────────────────────────────────}                  |
-                          Nvim is open source and freely distributable                  |
-                                    https://neovim.io/#chat                             |
+                             Neovim, with Helix keys and selections                     |
+                              open source and freely distributable                      |
                           {1:────────────────────────────────────────────}                  |
-                          type  {18::}{25:help nvim}{18:<Enter>}     if you are new!                   |
-                          type  {18::}{25:checkhealth}{18:<Enter>}   to optimize Nvim                  |
+                          type  {18::}{25:help spider}{18:<Enter>}   if you are new!                   |
+                          type  {18::}{25:checkhealth}{18:<Enter>}   to check setup                    |
                           type  {18::}{25:q}{18:<Enter>}             to exit                           |
                           type  {18::}{25:help}{18:<Enter>}          for help                          |
                           {1:────────────────────────────────────────────}                  |
@@ -2504,17 +2504,17 @@ it('ui/ext_multigrid supports intro screen', function()
     ## grid 2
       ^                                                                                |
       {1:~                                                                               }|*2
-      {1:~                                    }{16:│} {26:╲} {26:││}{1:                                     }|
-      {1:~                                    }{16:││}{26:╲╲││}{1:                                     }|
-      {1:~                                    }{16:││} {26:╲} {26:│}{1:                                     }|
+      {1:~                                   }{26:╲} {26:╲} {26:╱} {26:╱}{1:                                     }|
+      {1:~                                    }{16:─}({16:●●}){16:─}{1:                                     }|
+      {1:~                                   }{16:╱} {16:╱} {26:╲} {26:╲}{1:                                     }|
       {1:~                                                                               }|
-      {1:~{MATCH: +}}{26:NVIM {MATCH:%S+}}{1:{MATCH: +}}|
+      {1:~{MATCH: +}}{26:SPIDER {MATCH:%S+}}{1:{MATCH: +}}|
       {1:~                 ────────────────────────────────────────────                  }|
-      {1:~                 }Nvim is open source and freely distributable{1:                  }|
-      {1:~                           }https://neovim.io/#chat{1:                             }|
+      {1:~                    }Neovim, with Helix keys and selections{1:                     }|
+      {1:~                     }open source and freely distributable{1:                      }|
       {1:~                 ────────────────────────────────────────────                  }|
-      {1:~                 }type  {18::}{25:help nvim}{18:<Enter>}     if you are new! {1:                  }|
-      {1:~                 }type  {18::}{25:checkhealth}{18:<Enter>}   to optimize Nvim{1:                  }|
+      {1:~                 }type  {18::}{25:help spider}{18:<Enter>}   if you are new! {1:                  }|
+      {1:~                 }type  {18::}{25:checkhealth}{18:<Enter>}   to check setup  {1:                  }|
       {1:~                 }type  {18::}{25:q}{18:<Enter>}             to exit         {1:                  }|
       {1:~                 }type  {18::}{25:help}{18:<Enter>}          for help        {1:                  }|
       {1:~                 ────────────────────────────────────────────                  }|

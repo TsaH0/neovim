@@ -62,7 +62,7 @@ static const char *const xdg_defaults[] = {
 #endif
 };
 
-/// Gets the value of $NVIM_APPNAME, or "nvim" if not set.
+/// Gets the value of $NVIM_APPNAME, or "spider" if not set.
 ///
 /// @param namelike Write "name-like" value (no path separators) in `NameBuff`.
 ///
@@ -72,7 +72,7 @@ const char *get_appname(bool namelike)
   const char *env_val = os_getenv_noalloc("NVIM_APPNAME");
 
   if (!env_val) {
-    xstrlcpy(NameBuff, "nvim", sizeof(NameBuff));
+    xstrlcpy(NameBuff, "spider", sizeof(NameBuff));
   }
 
   TO_SLASH(NameBuff);

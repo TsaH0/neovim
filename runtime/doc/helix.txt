@@ -1,12 +1,32 @@
-*helix.txt*   Nvim
+*helix.txt*   Spider
 
 
-                            NVIM REFERENCE MANUAL
+                           SPIDER REFERENCE MANUAL
 
 
+Spider							*spider*
+
+Spider is Neovim with the Helix editor's keymap and selection model:
+"selection first, then action". Everything else (LSP, tree-sitter,
+diagnostics, options, Ex commands, Lua API, plugins) is Neovim's, so Neovim
+plugins and configs work. On top of that Spider adds, enabled by default:
+- Helix keys, multiple selections and minor modes		|helix-mode|
+- a popup command-line					|cmdline-popup|
+- language servers started automatically when installed	|lsp-autodetect|
+- a yazi-style file explorer (<Space>e)			|file-explorer|
+- an API to adapt plugins to the selection model		|helix-api|
+
+Spider runs as `spider`, keeps its config in `~/.config/spider` (`init.lua`)
+and its data in `~/.local/share/spider` (|stdpath()|; set $NVIM_APPNAME to
+use another name), so it can be installed next to Neovim.
+
+New to it? Press <Space>? to search all commands, or a prefix key (g, m, z,
+<Space>, [, ], CTRL-W) to see what follows.
+
+==============================================================================
 Helix mode						*helix-mode* *helix*
 
-Nvim uses the Helix editor's keymap and selection model by default:
+Spider uses the Helix editor's keymap and selection model by default:
 "selection first, then action". Everything else (LSP, tree-sitter,
 diagnostics, options, Ex commands, plugins) is the same Nvim.
 
@@ -194,14 +214,26 @@ Goto mode (g) ~
 							*helix-match*
 Match mode (m) ~
   m                matching bracket
-  s {char}         surround with {char} (brackets pair up)
+  s {pair}         surround with {pair} (brackets pair up)
   r {from}{to}     replace surrounding pair
-  d {char}         delete surrounding pair
+  d {pair}         delete surrounding pair
   a {obj} / i {obj}    select around / inside a text object:
     w, W, p        word, WORD, paragraph
-    ( [ { < " ' `  pairs        m   closest surrounding pair
+    {pair}         a pair (see below)   m   closest surrounding pair
+
     f, t, a, c, T, e, x   function, type, argument, comment, test, entry,
                    (X)HTML element (tree-sitter)
+							*helix-pairs*
+A {pair} is a pair character, or a letter for it (like vim-surround and
+targets.vim):
+    ( ) b    parentheses          " d      double quotes
+    { } B    braces               ' s      single quotes
+    [ ] r    brackets             ` k      backticks
+    < > A    angle brackets       q        closest quote (ms: " ")
+    m        closest pair of any kind (mi, ma, mr, md)
+Any other character surrounds with itself (`ms*` makes *text*).
+Examples: `mib` selects inside parentheses, `msB` surrounds with braces,
+`mrbr` turns ( ) into [ ], `mdq` deletes the closest quotes.
 
 							*helix-window*
 Window mode (CTRL-W, <Space>w) ~
@@ -257,6 +289,19 @@ Insert mode						*helix-insert*
   CTRL-J, <CR>     new line
   <Tab> / <S-Tab>  next / previous completion item, else insert a tab
   CTRL-C           reject completion
+
+							*helix-emacs*
+Emacs keys (where Helix and Nvim don't use the key for something else):
+  CTRL-A / CTRL-E  beginning / end of line (CTRL-E cancels completion)
+  CTRL-F / CTRL-B  forward / backward char
+  CTRL-N / CTRL-P  next / previous line (completion item when the menu shows)
+  Alt-f / Alt-b    forward / backward word
+  Alt-< / Alt->    beginning / end of buffer
+  Alt-u / Alt-l / Alt-c   upcase / downcase / capitalize the next word
+  CTRL-Y           yank (paste) the last text killed with CTRL-K, CTRL-U
+                   or Alt-d
+Not mapped, to keep Nvim's keys: CTRL-O (run one Normal-mode command),
+CTRL-V (insert a key literally), CTRL-T (indent).
 
 ==============================================================================
 Pickers and prompts					*helix-picker*

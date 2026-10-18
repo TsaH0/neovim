@@ -949,11 +949,20 @@ char *vim_getenv(const char *name)
     }
 
     char exe_name[MAXPATHL];
-    // Find runtime path relative to the nvim binary: ../share/nvim/runtime
+    // Find runtime path relative to the binary: ../share/spider/runtime,
+    // else ../share/nvim/runtime
     if (vim_path == NULL) {
       vim_get_prefix_from_exepath(exe_name);
-      if (append_path(exe_name, "share/nvim/runtime/", MAXPATHL) == OK) {
+      char prefix[MAXPATHL];
+      xstrlcpy(prefix, exe_name, sizeof(prefix));
+      if (append_path(exe_name, "share/spider/runtime/", MAXPATHL) == OK
+          && os_isdir(exe_name)) {
         vim_path = exe_name;
+      } else {
+        xstrlcpy(exe_name, prefix, sizeof(exe_name));
+        if (append_path(exe_name, "share/nvim/runtime/", MAXPATHL) == OK) {
+          vim_path = exe_name;
+        }
       }
     }
 

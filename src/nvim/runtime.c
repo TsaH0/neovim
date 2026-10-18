@@ -1820,9 +1820,15 @@ char *get_lib_dir(void)
     return xstrdup(default_lib_dir);
   }
 
-  // Find library path relative to the nvim binary: ../lib/nvim/
+  // Find library path relative to the binary: ../lib/spider/, else ../lib/nvim/
   char exe_name[MAXPATHL];
   vim_get_prefix_from_exepath(exe_name);
+  char prefix[MAXPATHL];
+  xstrlcpy(prefix, exe_name, sizeof(prefix));
+  if (append_path(exe_name, "lib/spider", MAXPATHL) == OK && os_isdir(exe_name)) {
+    return xstrdup(exe_name);
+  }
+  xstrlcpy(exe_name, prefix, sizeof(exe_name));
   if (append_path(exe_name, "lib/nvim", MAXPATHL) == OK) {
     return xstrdup(exe_name);
   }

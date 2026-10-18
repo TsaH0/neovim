@@ -45,7 +45,7 @@
   "." STR(NVIM_VERSION_MINOR) "." STR(NVIM_VERSION_PATCH) \
   NVIM_VERSION_PRERELEASE
 #endif
-#define NVIM_VERSION_LONG "NVIM " NVIM_VERSION_MEDIUM  // NOLINT(bugprone-suspicious-missing-comma)
+#define NVIM_VERSION_LONG "SPIDER " NVIM_VERSION_MEDIUM  // NOLINT(bugprone-suspicious-missing-comma)
 
 char *Versions[] = { "8.1", "8.2", "9.0", "9.1", "9.2" };
 char *longVersion = NVIM_VERSION_LONG;
@@ -4060,17 +4060,17 @@ bool may_show_intro(void)
 void intro_message(bool colon)
 {
   static char *(lines[]) = {
-    "│ ╲ ││",
-    "││╲╲││",
-    "││ ╲ │",
+    "╲ ╲ ╱ ╱",
+    "─(●●)─",
+    "╱ ╱ ╲ ╲",
     "",
     N_(NVIM_VERSION_LONG),
     "────────────────────────────────────────────",
-    N_("Nvim is open source and freely distributable"),
-    "https://neovim.io/#chat",
+    N_("Neovim, with Helix keys and selections"),
+    N_("open source and freely distributable"),
     "────────────────────────────────────────────",
-    N_("type  :help nvim<Enter>     if you are new! "),
-    N_("type  :checkhealth<Enter>   to optimize Nvim"),
+    N_("type  :help spider<Enter>   if you are new! "),
+    N_("type  :checkhealth<Enter>   to check setup  "),
     N_("type  :q<Enter>             to exit         "),
     N_("type  :help<Enter>          for help        "),
     "────────────────────────────────────────────",
@@ -4175,9 +4175,9 @@ static void do_intro_line(int row, char *mesg, bool colon, bool is_logo)
   }
 
   // Try highlighting full line:
-  // - Version starts with "NVIM".
+  // - Version starts with "SPIDER".
   // - Separator line consists from ─ (UTF-8: E2 94 80).
-  bool is_version = mesg[0] == 'N' && mesg[1] == 'V' && mesg[2] == 'I' && mesg[3] == 'M';
+  bool is_version = strncmp(mesg, "SPIDER", 6) == 0;
   bool is_sep = utfc_ptr2len(mesg) == 3 && utf_ptr2char(mesg) == 0x2500;
   if (is_version || is_sep) {
     int clen = is_sep ? 3 : 1;

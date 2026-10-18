@@ -13,6 +13,8 @@ set(ENV{NVIM_TEST} "1")
 set(ENV{NVIM_HELIX_MODE} "0")
 set(ENV{NVIM_CMDLINE_POPUP} "0")
 set(ENV{NVIM_LSP_AUTODETECT} "0")
+# Upstream tests expect the "nvim" app name (Spider defaults to "spider").
+set(ENV{NVIM_APPNAME} "nvim")
 # Set LC_ALL to meet expectations of some locale-sensitive tests.
 set(ENV{LC_ALL} "en_US.UTF-8")
 set(TEST_XDG_PREFIX ${BUILD_DIR}/Xtest_xdg${TEST_SUFFIX})
