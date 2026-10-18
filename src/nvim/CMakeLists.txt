@@ -763,7 +763,7 @@ target_sources(main_lib INTERFACE
   ${EXTERNAL_HEADERS})
 
 if(WIN32)
-  # add windows resource file pointing to the neovim icon
+  # add windows resource file pointing to the spider icon
   # this makes the icon appear for the neovim exe and associated filetypes
   target_sources(nvim_bin PRIVATE ${NVIM_RUNTIME_DIR}/windows_icon.rc)
 endif()

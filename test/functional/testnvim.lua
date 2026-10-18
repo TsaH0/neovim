@@ -655,6 +655,11 @@ function M._new_argv(...)
         'HOME',
         'LD_LIBRARY_PATH',
         'MSAN_OPTIONS',
+        -- Spider: app name and default features (see cmake/RunTests.cmake).
+        'NVIM_APPNAME',
+        'NVIM_CMDLINE_POPUP',
+        'NVIM_HELIX_MODE',
+        'NVIM_LSP_AUTODETECT',
         'NVIM_TEST',
         'NVIM_LOG_FILE',
         'NVIM_RPLUGIN_MANIFEST',

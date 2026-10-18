@@ -1,4 +1,8 @@
-<h1 align="center">🕷 Spider</h1>
+<p align="center">
+  <img src="runtime/spider.svg" alt="Spider logo" width="160">
+</p>
+
+<h1 align="center">Spider</h1>
 
 <p align="center">
   <b>Neovim, with Helix keys.</b><br>

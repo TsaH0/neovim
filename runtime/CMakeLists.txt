@@ -112,9 +112,12 @@ if(NOT APPLE)
 endif()
 
 install_helper(
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/nvim.png
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps
-  RENAME spider.png)
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/spider.png
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps)
+
+install_helper(
+  FILES ${CMAKE_CURRENT_SOURCE_DIR}/spider.svg
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps)
 
 file(GLOB RUNTIME_ROOT_FILES CONFIGURE_DEPENDS *.vim *.lua *.ico)
 install_helper(FILES ${RUNTIME_ROOT_FILES}
