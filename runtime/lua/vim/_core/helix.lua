@@ -2594,7 +2594,23 @@ local goto_entries = {
 local pairs_open = { ['('] = ')', ['['] = ']', ['{'] = '}', ['<'] = '>' }
 local pairs_close = { [')'] = '(', [']'] = '[', ['}'] = '{', ['>'] = '<' }
 
+--- Letter aliases for pair characters (like vim-surround and targets.vim), usable
+--- wherever a pair char is typed (mi/ma/ms/mr/md): b = ( ), B = { }, r = [ ],
+--- A = < >, d = " ", s = ' ', k = ` `. "q" is the closest quote of any kind.
+M.pair_aliases = { b = '(', B = '{', r = '[', A = '<', d = '"', s = "'", k = '`' }
+
+local quote_chars = { '"', "'", '`' }
+local pair_chars = { '(', '[', '{', '<', '"', "'", '`' }
+
+--- Pair character for a typed key (resolves letter aliases).
+---@param key string
+---@return string
+local function pair_char(key)
+  return M.pair_aliases[key] or key
+end
+
 local function pair_of(ch)
+  ch = pair_char(ch)
   if pairs_open[ch] then
     return ch, pairs_open[ch]
   elseif pairs_close[ch] then
@@ -2624,7 +2640,7 @@ cmd('surround_add', 'Surround add', function()
   if not k then
     return
   end
-  local o, c = pair_of(k)
+  local o, c = pair_of(k == 'q' and '"' or k)
   sel.transform(function(s)
     local f, t = sel.from(s), sel.to(s)
     local e = sel.after(t)
@@ -2739,16 +2755,29 @@ local function find_surround(s, ch, n)
   end
 end
 
---- Closest surrounding bracket/quote pair (Helix `m` as the pair char).
-local function closest_pair(s)
+--- Closest surrounding pair among `chars` (default: brackets and quotes; Helix
+--- `m` as the pair char).
+local function closest_pair(s, chars)
   local best_o, best_c
-  for _, ch in ipairs({ '(', '[', '{', '<', '"', "'", '`' }) do
+  for _, ch in ipairs(chars or pair_chars) do
     local o, c = find_surround(s, ch, 1)
     if o and c and (not best_o or sel.cmp(o, best_o) > 0) then
       best_o, best_c = o, c
     end
   end
   return best_o, best_c
+end
+
+--- Finds the pair typed as `key` around `s`: a pair char, a letter alias, "m"
+--- (closest pair) or "q" (closest quote).
+---@return nvim.helix.Pos?, nvim.helix.Pos?
+local function find_pair(s, key, n)
+  if key == 'm' then
+    return closest_pair(s)
+  elseif key == 'q' then
+    return closest_pair(s, quote_chars)
+  end
+  return find_surround(s, pair_char(key), n)
 end
 
 cmd('surround_delete', 'Surround delete', function()
@@ -2758,12 +2787,7 @@ cmd('surround_delete', 'Surround delete', function()
     return
   end
   sel.transform(function(s)
-    local o, c
-    if k == 'm' then
-      o, c = closest_pair(s)
-    else
-      o, c = find_surround(s, k, n)
-    end
+    local o, c = find_pair(s, k, n)
     if not o or not c then
       notify('Surround pair not found around all cursors', vim.log.levels.WARN)
       return s
@@ -2796,24 +2820,25 @@ cmd('surround_replace', 'Surround replace', function()
   if not to then
     return
   end
-  local no, nc = pair_of(to)
+  local no, nc = pair_of(to == 'q' and '"' or to)
   sel.transform(function(s)
-    local o, c
-    if from == 'm' then
-      o, c = closest_pair(s)
-    else
-      o, c = find_surround(s, from, n)
-    end
+    local o, c = find_pair(s, from, n)
     if not o or not c then
       notify('Surround pair not found around all cursors', vim.log.levels.WARN)
       return s
     end
+    local same = #no == #sel.char(o) and #nc == #sel.char(c)
     local a, h = sel.mark(s.a), sel.mark(s.h)
     local ce = sel.after(c)
     api.nvim_buf_set_text(0, c[1], c[2], ce[1], ce[2], { nc })
     local oe = sel.after(o)
     api.nvim_buf_set_text(0, o[1], o[2], oe[1], oe[2], { no })
-    return { a = sel.unmark(a), h = sel.unmark(h) }
+    local na, nh = sel.unmark(a), sel.unmark(h)
+    if same then
+      -- Same-size replacement: keep the selection on the same chars.
+      return s
+    end
+    return { a = na, h = nh }
   end)
 end)
 
@@ -2893,8 +2918,9 @@ local function select_textobject(around)
           return s
         end
         r = ts.textobject(s, ts_objects[k], around)
-      elseif k == 'm' then
-        local o, c = closest_pair(s)
+      elseif k == 'm' or k == 'q' or vim.list_contains(quote_chars, pair_char(k)) then
+        -- Quotes: the exact pair (Vim's a" would also take trailing space).
+        local o, c = find_pair(s, k, n)
         if o and c then
           if around then
             r = { a = o, h = c }
@@ -2905,7 +2931,7 @@ local function select_textobject(around)
       elseif k == 'g' then
         r = nil -- Changes (diff hunks) are handled by `]g`.
       else
-        local obj = (around and 'a' or 'i') .. k
+        local obj = (around and 'a' or 'i') .. pair_char(k)
         r = vim_textobject(sel.from(s), obj, n)
       end
       return r or s
@@ -2929,6 +2955,19 @@ local textobject_info = {
   { 'x', '(X)HTML element (tree-sitter)' },
   { 'm', 'Closest surrounding pair' },
   { '( [ { < " \' `', 'Specified surround pairs' },
+  { 'b B r A', '( )  { }  [ ]  < >' },
+  { 'q', 'Closest quote' },
+  { 'd s k', '" "  \' \'  ` `' },
+}
+
+--- Keys accepted where a surround pair is typed (ms/mr/md).
+local pair_info = {
+  { '( [ { < " \' `', 'Pair characters (open or close)' },
+  { 'b B r A', '( )  { }  [ ]  < >' },
+  { 'd s k', '" "  \' \'  ` `' },
+  { 'q', 'Closest quote (ms: " ")' },
+  { 'm', 'Closest pair (mr/md)' },
+  { 'other', 'That character on both sides' },
 }
 
 local function with_info(title, info, f)
@@ -2947,11 +2986,23 @@ local function with_info(title, info, f)
   end
 end
 
+--- Runs `f` (which reads pair keys) with the pair keys in the info box.
+local function with_pair_info(title, f)
+  return function()
+    show_info(title, pair_info)
+    local ok, err = pcall(f)
+    close_info()
+    if not ok then
+      error(err, 0)
+    end
+  end
+end
+
 local match_entries = {
   { 'm', 'match_brackets' },
-  { 's', 'surround_add' },
-  { 'r', 'surround_replace' },
-  { 'd', 'surround_delete' },
+  { 's', with_pair_info('Surround with', C.surround_add), 'Surround add' },
+  { 'r', with_pair_info('Replace surround', C.surround_replace), 'Surround replace' },
+  { 'd', with_pair_info('Delete surround', C.surround_delete), 'Surround delete' },
   {
     'a',
     with_info('Match around', textobject_info, C.select_textobject_around),
@@ -3838,13 +3889,55 @@ end)
 
 -- Insert/prompt helpers {{{
 
+--- Emacs-style kill ring for Insert-mode deletions (CTRL-K, CTRL-U, ALT-D), yanked
+--- back with CTRL-Y.
+M.kill_ring = {} ---@type string[]
+
+--- Deletes text (0-indexed, end-exclusive) and pushes it on the kill ring.
+local function kill(r1, c1, r2, c2)
+  local text = table.concat(api.nvim_buf_get_text(0, r1, c1, r2, c2, {}), '\n')
+  if text ~= '' then
+    table.insert(M.kill_ring, 1, text)
+    M.kill_ring[31] = nil
+  end
+  api.nvim_buf_set_text(0, r1, c1, r2, c2, { '' })
+end
+
+local function insert_yank()
+  local text = M.kill_ring[1]
+  if text then
+    api.nvim_put(vim.split(text, '\n', { plain = true }), 'c', false, true)
+  end
+end
+
+--- Applies `f` (a char → char function) to the word after the cursor and moves
+--- past it (Emacs ALT-U / ALT-L / ALT-C).
+local function insert_case_word(f)
+  local c = api.nvim_win_get_cursor(0)
+  local r, col = c[1] - 1, c[2]
+  local l = sel.line(r)
+  local s1 = col
+  while s1 < #l and not l:sub(s1 + 1, s1 + 1):match('[%w_]') do
+    s1 = s1 + 1
+  end
+  local e = s1
+  while e < #l and l:sub(e + 1, e + 1):match('[%w_]') do
+    e = e + 1
+  end
+  if e > s1 then
+    local word = l:sub(s1 + 1, e)
+    api.nvim_buf_set_text(0, r, s1, r, e, { f(word) })
+  end
+  api.nvim_win_set_cursor(0, { r + 1, e })
+end
+
 local function insert_delete_word_forward()
   local c = api.nvim_win_get_cursor(0)
   local r, col = c[1] - 1, c[2]
   local l = sel.line(r)
   if col >= #l then
     if r < sel.line_count() - 1 then
-      api.nvim_buf_set_text(0, r, col, r + 1, 0, { '' })
+      kill(r, col, r + 1, 0)
     end
     return
   end
@@ -3856,7 +3949,7 @@ local function insert_delete_word_forward()
   while e < #l and sel.class(l:sub(e + 1, e + sel.charlen(l, e))) == cls do
     e = e + sel.charlen(l, e)
   end
-  api.nvim_buf_set_text(0, r, col, r, e, { '' })
+  kill(r, col, r, e)
 end
 
 local function insert_kill_to_line_end()
@@ -3864,10 +3957,10 @@ local function insert_kill_to_line_end()
   local l = sel.line(c[1] - 1)
   if c[2] >= #l then
     if c[1] < sel.line_count() then
-      api.nvim_buf_set_text(0, c[1] - 1, c[2], c[1], 0, { '' })
+      kill(c[1] - 1, c[2], c[1], 0)
     end
   else
-    api.nvim_buf_set_text(0, c[1] - 1, c[2], c[1] - 1, #l, { '' })
+    kill(c[1] - 1, c[2], c[1] - 1, #l)
   end
 end
 
@@ -3876,7 +3969,7 @@ local function insert_kill_to_line_start()
   if c[2] == 0 then
     if c[1] > 1 then
       local pl = sel.line(c[1] - 2)
-      api.nvim_buf_set_text(0, c[1] - 2, #pl, c[1] - 1, 0, { '' })
+      kill(c[1] - 2, #pl, c[1] - 1, 0)
       api.nvim_win_set_cursor(0, { c[1] - 1, #pl })
     end
     return
@@ -3884,7 +3977,7 @@ local function insert_kill_to_line_start()
   local l = sel.line(c[1] - 1)
   local ind = #(l:match('^%s*'))
   local start = c[2] > ind and ind or 0
-  api.nvim_buf_set_text(0, c[1] - 1, start, c[1] - 1, c[2], { '' })
+  kill(c[1] - 1, start, c[1] - 1, c[2])
   api.nvim_win_set_cursor(0, { c[1], start })
 end
 
@@ -4222,6 +4315,45 @@ local function set_keymaps()
     end
     return '<Esc>'
   end, { expr = true, desc = 'helix: reject completion' })
+
+  -- Emacs keys (only where Helix and Nvim have nothing more important).
+  kset('i', '<C-a>', '<Home>', { desc = 'emacs: beginning of line' })
+  kset('i', '<C-e>', function()
+    if fn.pumvisible() == 1 then
+      return '<C-e>' -- Cancel completion, like Nvim.
+    end
+    return '<End>'
+  end, { expr = true, desc = 'emacs: end of line' })
+  kset('i', '<C-f>', '<C-g>U<Right>', { desc = 'emacs: forward char' })
+  kset('i', '<C-b>', '<C-g>U<Left>', { desc = 'emacs: backward char' })
+  kset('i', '<C-n>', function()
+    if fn.pumvisible() == 1 then
+      return '<C-n>'
+    end
+    return '<Down>'
+  end, { expr = true, desc = 'emacs: next line / completion item' })
+  kset('i', '<C-p>', function()
+    if fn.pumvisible() == 1 then
+      return '<C-p>'
+    end
+    return '<Up>'
+  end, { expr = true, desc = 'emacs: previous line / completion item' })
+  kset('i', '<M-f>', '<S-Right>', { desc = 'emacs: forward word' })
+  kset('i', '<M-b>', '<S-Left>', { desc = 'emacs: backward word' })
+  kset('i', '<M-<>', '<C-Home>', { desc = 'emacs: beginning of buffer' })
+  kset('i', '<M->>', '<C-End>', { desc = 'emacs: end of buffer' })
+  kset('i', '<C-y>', insert_yank, { desc = 'emacs: yank last kill' })
+  kset('i', '<M-u>', function()
+    insert_case_word(fn.toupper)
+  end, { desc = 'emacs: upcase word' })
+  kset('i', '<M-l>', function()
+    insert_case_word(fn.tolower)
+  end, { desc = 'emacs: downcase word' })
+  kset('i', '<M-c>', function()
+    insert_case_word(function(w)
+      return fn.toupper(w:sub(1, 1)) .. fn.tolower(w:sub(2))
+    end)
+  end, { desc = 'emacs: capitalize word' })
 
   -- Command-line (prompt) mode.
   kset('c', { '<M-b>', '<C-Left>' }, '<S-Left>', { desc = 'helix: backward a word' })
